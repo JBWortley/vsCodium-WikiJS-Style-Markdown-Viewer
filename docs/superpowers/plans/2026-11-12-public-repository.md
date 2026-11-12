@@ -23,7 +23,15 @@
 - [x] Replace private defaults and fixtures; document setup, limitations and licensing.
 - [x] Run clean-install checks, private golden comparisons, packaging checks and a privacy scan.
 - [x] Obtain an independent review and resolve material findings.
-- [ ] Run each editor's live gate with consent, inspect screenshots, and publish only the clean initial commit.
+- [x] Run each editor's live gate with consent, inspect screenshots, and publish the clean history.
+
+## Verification record
+
+The initial source passed 41 public tests and 12 optional local golden comparisons.
+VSCodium 1.143.1 passed all 21 live checks. VS Code 1.123.2 passed 20 checks, with its
+unavailable WYSIWYG editor check skipped. All screenshots were reviewed and demo files
+remained unchanged. Source, Git history and packaged output passed secret and private-data
+scans. Original development history and private captures were excluded from publication.
 
 ## Review focus
 
