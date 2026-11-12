@@ -1,6 +1,6 @@
 # Architecture
 
-The extension adds a read-only Wiki.js Page custom editor and a side preview that follows the
+The extension adds a Wiki.js Page custom editor and a side preview that follows the
 active Markdown text editor. It renders the page body and frontmatter, without website chrome.
 
 ## Renderer
@@ -25,9 +25,17 @@ five-second deadline and restarts timed-out workers. The host caps input at two 
 and scroll sync. `sanitize.ts` applies DOMPurify with the browser parser and inserts DOM
 nodes without another serialization pass.
 
+`render/editMap.ts` optionally annotates rendered blocks with unpredictable edit IDs and exact
+source spans. `editing/edits.ts` validates document identity, version, source and YAML before
+`panel.ts` applies a targeted WorkspaceEdit. `webview/editing.ts` manages per-block Apply/Cancel,
+checkbox toggles and local drafts. Rendering without edit metadata retains the fidelity output.
+This uses the [custom text editor document model](https://code.visualstudio.com/api/extension-guides/custom-editors#custom-text-editor)
+for native document history and Save.
+
 ## Safety and validation
 
-Markdown files are never saved by the extension. The nonce CSP and both sanitizers provide
+Only explicit editing actions change document buffers. Normal Save/autosave controls persistence.
+The nonce CSP and both sanitizers provide
 separate defenses. Command URIs are disabled. Local links use `vscode.open`; local resources
 are limited to the wiki root and media directory. HTTPS iframes are sandboxed.
 

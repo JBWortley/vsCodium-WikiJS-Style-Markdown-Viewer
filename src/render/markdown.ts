@@ -7,6 +7,7 @@ import mdTaskLists from "markdown-it-task-lists";
 import mdSub from "markdown-it-sub";
 import mdSup from "markdown-it-sup";
 import mdAbbr from "markdown-it-abbr";
+import htmlInline from "markdown-it/lib/rules_inline/html_inline";
 import { highlightFence } from "./highlight";
 
 export interface MarkdownOptions {
@@ -39,11 +40,26 @@ export function createMarkdown(options: MarkdownOptions): MarkdownIt {
   md.use(mdSub);
   md.use(mdSup);
   md.use(mdAbbr);
+  // Preserve the parser's exact inline HTML positions for optional source editing. Reuse the
+  // pinned rule unchanged; token metadata has no effect on ordinary/fidelity rendering.
+  md.core.ruler.before("inline", "wikijs_inline_source", state => {
+    if (state.env?.captureEdits) for (const token of state.tokens) {
+      if (token.type === "inline") token.meta = { ...token.meta, editSource: token.content };
+    }
+  });
+  md.inline.ruler.at("html_inline", (state, silent) => {
+    const start = state.pos;
+    const matched = htmlInline(state, silent);
+    if (matched && !silent && state.env?.captureEdits) state.tokens[state.tokens.length - 1].meta = { htmlStart: start, htmlEnd: state.pos };
+    return matched;
+  });
 
   md.renderer.rules.fence = (tokens, idx) => {
     const token = tokens[idx];
     const lang = token.info.trim().split(/\s+/)[0] ?? "";
-    return highlightFence(token.content, lang, token.attrGet(DATA_LINE)) + "\n";
+    const html = highlightFence(token.content, lang, token.attrGet(DATA_LINE));
+    const edit = token.attrGet("data-wk-edit");
+    return (edit ? html.replace(/^(<\w+)/, `$1 data-wk-edit="${edit}"`) : html) + "\n";
   };
   md.core.ruler.push("wikijs_data_line", (state) => {
     const offset: number = state.env?.lineOffset ?? 0;

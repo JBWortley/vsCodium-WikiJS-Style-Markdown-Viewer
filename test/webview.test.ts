@@ -124,3 +124,66 @@ describe("asset refresh reconciliation", () => {
     } finally { f.dom.window.close(); }
   });
 });
+
+describe("page block editing", () => {
+  function editable(source: string) {
+    const f = fixture(false);
+    const page = renderPage(source, { siteUrl: "", pagePath: "home", pageExists: () => true, markdown: WIKI_DEFAULTS, editKey: "editable-4" });
+    const render = () => f.send({ type: "render", uri: "file:///demo/home.md", page, token: TOKEN });
+    render();
+    const click = (selector: string, init = {}) => f.window.document.querySelector(selector)!.dispatchEvent(new f.window.MouseEvent("click", { bubbles: true, cancelable: true, ...init }));
+    return { ...f, page, render, click };
+  }
+
+  it("edits text on double-click; Cancel never changes source and Apply sends only the selected block", () => {
+    const f = editable("Hello **world**.\n\nOther paragraph.");
+    try {
+      const p = f.window.document.querySelector("#wk-contents p")!;
+      p.dispatchEvent(new f.window.MouseEvent("dblclick", { bubbles: true }));
+      const textarea = f.window.document.querySelector<HTMLTextAreaElement>(".wk-block-editor textarea")!;
+      expect(textarea.value).toBe("Hello **world**.");
+      textarea.value = "New **text**.";
+      f.click('.wk-block-editor [data-action="cancel"]');
+      expect(f.messages.filter(m => m.type === "edit")).toHaveLength(0);
+      p.dispatchEvent(new f.window.MouseEvent("dblclick", { bubbles: true }));
+      f.window.document.querySelector<HTMLTextAreaElement>(".wk-block-editor textarea")!.value = "New **text**.";
+      f.click('.wk-block-editor [data-action="apply"]');
+      expect(f.messages.filter(m => m.type === "edit")).toEqual([{ type: "edit", id: p.getAttribute("data-wk-edit"), text: "New **text**." }]);
+    } finally { f.dom.window.close(); }
+  });
+
+  it("Shift-click edits original HTML instead of following links; rejected edits and refresh preserve the draft", () => {
+    const f = editable('<a id="object" href="https://example.com">Original</a>');
+    try {
+      f.click("#object", { shiftKey: true });
+      const textarea = f.window.document.querySelector<HTMLTextAreaElement>(".wk-block-editor textarea")!;
+      expect(textarea.value).toBe('<a id="object" href="https://example.com">Original</a>');
+      textarea.value = '<img src="x" onerror="alert(1)">';
+      f.render();
+      expect(f.window.document.querySelector(".wk-block-editor textarea")).toBe(textarea);
+      f.click('.wk-block-editor [data-action="apply"]');
+      const id = f.page.editTargets!.find(t => t.kind === "html")!.id;
+      f.send({ type: "editResult", id, ok: false, message: "The document changed.", token: TOKEN });
+      expect(textarea.value).toContain("onerror");
+      expect(f.window.document.querySelector(".wk-edit-error")?.textContent).toBe("The document changed.");
+      expect(f.window.document.querySelector(".wk-block-editor img")).toBeNull();
+      expect(f.messages.filter(m => m.type === "link")).toHaveLength(0);
+    } finally { f.dom.window.close(); }
+  });
+
+  it("checkboxes submit a targeted toggle, attributes use Apply/Cancel, and frames have an accessible edit action", () => {
+    const f = editable('---\ntitle: Old\n---\n\n- [ ] Task\n\n<iframe src="https://example.com"></iframe>');
+    try {
+      const check = f.window.document.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+      expect(check.disabled).toBe(false);
+      check.click();
+      expect(f.messages.filter(m => m.type === "edit")).toContainEqual({ type: "edit", id: check.getAttribute("data-wk-check"), checked: true });
+      f.send({ type: "editResult", id: check.getAttribute("data-wk-check"), ok: true, token: TOKEN });
+      f.click('.wk-edit-attributes');
+      expect(f.window.document.querySelector<HTMLTextAreaElement>(".wk-block-editor textarea")?.value).toBe('---\ntitle: Old\n---');
+      f.click('.wk-block-editor [data-action="cancel"]');
+      f.click('.wk-edit-frame');
+      expect(f.window.document.querySelector<HTMLTextAreaElement>(".wk-block-editor textarea")?.value).toBe('<iframe src="https://example.com"></iframe>');
+    } finally { f.dom.window.close(); }
+  });
+});

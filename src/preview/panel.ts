@@ -7,6 +7,7 @@ import { fileForPage, findWikiRoot, pagePathFor, scanPages } from "./wikiRoot";
 import { classifyLinkTarget } from "../render/paths";
 import type { FromWebview, ToWebview } from "../render/protocol";
 import type { MarkdownOptions } from "../render/markdown";
+import { prepareEdit, type EditRequest, type EditSnapshot } from "../editing/edits";
 
 /** Side panel that follows the active markdown editor. */
 export const PREVIEW_VIEW_TYPE = "wikijsViewer.preview";
@@ -134,6 +135,9 @@ export class WikiView implements vscode.Disposable {
   private renderSeq = 0;
   private ready = false;
   private disposed = false;
+  private editKey = crypto.randomBytes(16).toString("hex");
+  private editSnapshot?: EditSnapshot;
+  private applyingEdit = false;
   private assetCacheKey = crypto.randomBytes(8).toString("hex");
   private readonly assets = new AssetWatcher(() => this.refresh());
   private readonly messageToken = crypto.randomBytes(32).toString("hex");
@@ -171,6 +175,8 @@ export class WikiView implements vscode.Disposable {
   async setDocument(doc: vscode.TextDocument): Promise<void> {
     if (this.disposed) return;
     if (doc !== this.doc) {
+      this.editKey = crypto.randomBytes(16).toString("hex");
+      this.editSnapshot = undefined;
       this.assets.update(undefined, []);
       this.assetCacheKey = crypto.randomBytes(8).toString("hex");
     }
@@ -243,6 +249,7 @@ export class WikiView implements vscode.Disposable {
     const seq = ++this.renderSeq;
     const settings = readSettings();
     const source = doc.getText();
+    const version = doc.version;
     if (source.length > MAX_SOURCE_CHARS) {
       this.post({ type: "renderError", message: `This page is larger than ${MAX_SOURCE_CHARS.toLocaleString()} characters and was not rendered.` });
       return;
@@ -255,6 +262,7 @@ export class WikiView implements vscode.Disposable {
         pagePath: doc.uri.scheme === "file" ? pagePathFor(doc.uri.fsPath, root) : "untitled",
         siteUrl: settings.siteUrl,
         markdown: settings.markdown,
+        editKey: `${this.editKey}-${version}`,
         assets: {
           rootFsPath: root,
           rootUri: panel.webview.asWebviewUri(vscode.Uri.file(root)).toString().replace(/\/+$/, ""),
@@ -262,8 +270,9 @@ export class WikiView implements vscode.Disposable {
           cacheKey: this.assetCacheKey,
         },
       });
-      if (this.disposed || seq !== this.renderSeq || doc !== this.doc) return;
+      if (this.disposed || seq !== this.renderSeq || doc !== this.doc || version !== doc.version) return;
       this.assets.update(this.root, localAssets);
+      this.editSnapshot = { uri: doc.uri.toString(), version, source, targets: page.editTargets ?? [] };
       this.post({ type: "render", uri: doc.uri.toString(), page });
       this.services.log(`rendered ${page.pagePath} in ${page.renderMs} ms`);
       const anchor = this.services.pendingAnchors.get(doc.uri.toString());
@@ -290,6 +299,7 @@ export class WikiView implements vscode.Disposable {
       return;
     }
     if (msg.type === "refresh") this.refresh();
+    if (msg.type === "edit") await this.applyBlockEdit(msg);
     if (msg.type === "link") await this.followLink(msg.href);
     if (msg.type === "painted") this.services.firePainted({ ...msg, kind: this.kind });
     if (msg.type === "copy") {
@@ -297,6 +307,28 @@ export class WikiView implements vscode.Disposable {
       this.services.log(`copied ${msg.text.length} characters of code`);
     }
     if (msg.type === "test:state") for (const resolve of this.testWaiters.splice(0)) resolve(msg);
+  }
+
+  private async applyBlockEdit(request: EditRequest): Promise<void> {
+    if (!request || typeof request.id !== "string") return;
+    try {
+      if (this.applyingEdit) throw new Error("Another change is being applied. Try again in a moment.");
+      const doc = this.doc;
+      const snapshot = this.editSnapshot;
+      if (!doc || !snapshot || this.disposed || doc.isClosed) throw new Error("This document is no longer open.");
+      const change = prepareEdit(snapshot, { uri: doc.uri.toString(), version: doc.version, source: doc.getText() }, request);
+      const edit = new vscode.WorkspaceEdit();
+      edit.replace(doc.uri, new vscode.Range(doc.positionAt(change.start), doc.positionAt(change.end)), change.text);
+      this.applyingEdit = true;
+      let ok: boolean;
+      try { ok = await vscode.workspace.applyEdit(edit); }
+      finally { this.applyingEdit = false; }
+      if (!ok) throw new Error("The editor could not apply this change. Your draft has been kept.");
+      this.post({ type: "editResult", id: request.id, ok: true });
+      this.scheduleRender(0);
+    } catch (error) {
+      this.post({ type: "editResult", id: request.id, ok: false, message: error instanceof Error ? error.message : String(error) });
+    }
   }
 
   /** Navigates like the wiki would, without ever handing a local file to the OS shell. */

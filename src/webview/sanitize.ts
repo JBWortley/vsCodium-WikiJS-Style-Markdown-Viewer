@@ -22,6 +22,8 @@ export function createSanitizer(purify: DOMPurify, doc: Document): (html: string
     if (!/^https:\/\//i.test(src.trim())) {
       const card = doc.createElement("div");
       card.className = "wk-embed-blocked";
+      const edit = el.getAttribute("data-wk-edit");
+      if (edit) card.setAttribute("data-wk-edit", edit);
       card.textContent = src ? `Embedded content not shown (not https): ${src}` : "Embedded content not shown (no address)";
       el.replaceWith(card);
       return;

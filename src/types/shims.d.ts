@@ -35,3 +35,8 @@ declare module "markdown-it-task-lists" {
   export default plugin;
 }
 declare module "prismjs/components/*";
+declare module "markdown-it/lib/rules_inline/html_inline" {
+  import type StateInline from "markdown-it/lib/rules_inline/state_inline";
+  const rule: (state: StateInline, silent: boolean) => boolean;
+  export default rule;
+}

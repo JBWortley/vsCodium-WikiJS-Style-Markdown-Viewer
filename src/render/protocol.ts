@@ -1,5 +1,6 @@
 import type { MarkdownOptions } from "./markdown";
 import type { RenderedPage } from "./page";
+import type { EditRequest } from "../editing/edits";
 
 export interface AssetBases {
   rootFsPath: string;
@@ -21,6 +22,7 @@ export type WorkerRequest =
       siteUrl: string;
       markdown: MarkdownOptions;
       assets: AssetBases;
+      editKey?: string;
     };
 
 /** Render worker -> extension host. */
@@ -30,10 +32,12 @@ export type WorkerResponse = { type: "rendered"; id: number; page: RenderedPage 
 export type ToWebview =
   | { type: "render"; uri: string; page: RenderedPage }
   | { type: "renderError"; message: string }
+  | { type: "editResult"; id: string; ok: boolean; message?: string }
   | { type: "scrollToLine"; line: number }
   | { type: "scrollToAnchor"; id: string }
   /** Live-test hooks: the extension only sends these in ExtensionMode.Test. */
-  | { type: "test:click"; selector: string }
+  | { type: "test:click"; selector: string; shiftKey?: boolean; double?: boolean }
+  | { type: "test:input"; selector: string; text: string }
   | { type: "test:state" }
   | { type: "test:probeMessages" }
   /** Scroll an element into view and report where it is (for a real mouse click). */
@@ -46,6 +50,7 @@ export type ToWebview =
 export type FromWebview =
   | { type: "ready" }
   | { type: "refresh" }
+  | ({ type: "edit" } & EditRequest)
   | { type: "link"; href: string }
   /** What the webview actually painted, for the log and the end-to-end test. */
   | { type: "painted"; uri: string; blocks: number; height: number; background: string; calloutBackground?: string; overflowX: number }
@@ -64,6 +69,8 @@ export type FromWebview =
       /** test:query: matches and the first match's attribute value. */
       count?: number;
       attr?: string | null;
+      value?: string;
+      text?: string;
       /** Loaded image dimensions, so live checks verify the bytes fetched, not only the URL. */
       image?: { complete: boolean; width: number; height: number };
       pwned?: string;

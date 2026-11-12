@@ -2,6 +2,7 @@ import DOMPurify from "dompurify";
 import { renderApp, renderFrontmatter } from "../render/shell";
 import type { FromWebview, ToWebview } from "../render/protocol";
 import { createSanitizer } from "./sanitize";
+import { BlockEditor, type SavedDrafts } from "./editing";
 
 interface VsCodeApi {
   postMessage(msg: FromWebview): void;
@@ -11,6 +12,7 @@ interface VsCodeApi {
 interface PersistedState {
   uri?: string;
   scrollY?: number;
+  drafts?: SavedDrafts;
 }
 declare function acquireVsCodeApi(): VsCodeApi;
 
@@ -21,6 +23,14 @@ const testMode = root.dataset.testMode === "true";
 let state: PersistedState = vscode.getState() ?? {};
 let currentUri: string | undefined;
 const sanitize = createSanitizer(DOMPurify, document);
+let deferredRender: Extract<ToWebview, { type: "render" }> | undefined;
+const editing = new BlockEditor(message => vscode.postMessage(message), state.drafts ?? {}, drafts => setState({ drafts }), () => {
+  if (!deferredRender) return;
+  const next = deferredRender;
+  deferredRender = undefined;
+  render(next);
+  reportPaint(next.uri);
+});
 
 function setState(patch: PersistedState): void {
   state = { ...state, ...patch };
@@ -66,6 +76,9 @@ function replaceIfChanged(id: string, html: string): void {
 
 function render(msg: Extract<ToWebview, { type: "render" }>): void {
   const { page, uri } = msg;
+  if (editing.defer(uri)) { deferredRender = msg; return; }
+  deferredRender = undefined;
+  editing.detach();
   if (uri !== currentUri || !document.getElementById("wk-contents")) {
     const restoreScroll = uri === state.uri ? (state.scrollY ?? 0) : 0;
     // The frontmatter table is our own escaped markup; the page body goes through the sanitizer.
@@ -74,10 +87,12 @@ function render(msg: Extract<ToWebview, { type: "render" }>): void {
     currentUri = uri;
     setState({ uri, scrollY: restoreScroll });
     window.scrollTo(0, restoreScroll);
+    editing.attach(page, uri);
     return;
   }
   replaceIfChanged("wk-frontmatter", renderFrontmatter(page));
   morphChildren(document.getElementById("wk-contents") as HTMLElement, page.contentHtml);
+  editing.attach(page, uri);
 }
 
 function reportPaint(uri: string): void {
@@ -120,6 +135,7 @@ function scrollToAnchor(id: string): void {
 
 /** Editor-to-preview sync: interpolate between the blocks around the editor's top line. */
 function scrollToLine(line: number): void {
+  if (editing.defer(currentUri ?? "")) return;
   const blocks = Array.from(document.querySelectorAll<HTMLElement>("#wk-contents [data-line]"))
     .map((el) => ({ el, line: Number(el.dataset.line) }))
     .filter((b) => Number.isFinite(b.line) && b.el.getClientRects().length > 0)
@@ -157,6 +173,7 @@ function copyCode(button: HTMLButtonElement): void {
 }
 
 document.addEventListener("click", (event) => {
+  if (editing.handleClick(event)) return;
   const target = event.target as Element | null;
   const copy = target?.closest<HTMLButtonElement>(".code-toolbar .toolbar button");
   if (copy) {
@@ -236,6 +253,9 @@ window.addEventListener("message", (event: MessageEvent<ToWebview & { token?: st
     case "renderError":
       showError(msg.message);
       break;
+    case "editResult":
+      editing.result(msg);
+      break;
     case "scrollToLine":
       requestAnimationFrame(() => scrollToLine(msg.line));
       break;
@@ -246,9 +266,18 @@ window.addEventListener("message", (event: MessageEvent<ToWebview & { token?: st
       // A dispatched MouseEvent works on SVG elements too (they have no .click()); always answer.
       const el = document.querySelector(msg.selector);
       try {
-        el?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+        el?.dispatchEvent(new MouseEvent(msg.double ? "dblclick" : "click", { bubbles: true, cancelable: true, view: window, shiftKey: msg.shiftKey }));
       } catch {
         /* reported as clicked: false below only if the element is missing */
+      }
+      vscode.postMessage({ ...baseState(), clicked: !!el });
+      break;
+    }
+    case "test:input": {
+      const el = document.querySelector(msg.selector);
+      if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) {
+        el.value = msg.text;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
       }
       vscode.postMessage({ ...baseState(), clicked: !!el });
       break;
@@ -294,6 +323,8 @@ window.addEventListener("message", (event: MessageEvent<ToWebview & { token?: st
         ...baseState(),
         count: all.length,
         attr: msg.attr ? (all[0]?.getAttribute(msg.attr) ?? null) : undefined,
+        value: all[0] instanceof HTMLTextAreaElement || all[0] instanceof HTMLInputElement ? all[0].value : undefined,
+        text: all[0]?.textContent ?? undefined,
         image: image ? { complete: image.complete, width: image.naturalWidth, height: image.naturalHeight } : undefined,
         pwned: typeof (window as unknown as { __pwned?: unknown }).__pwned,
       });

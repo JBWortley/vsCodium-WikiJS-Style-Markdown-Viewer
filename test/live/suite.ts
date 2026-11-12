@@ -600,6 +600,130 @@ export async function run(): Promise<void> {
     return { loaded: manual.image, shortcutRefreshed: true };
   });
 
+  const editDir = path.join(OUT, "block-editing");
+  const editPage = vscode.Uri.file(path.join(editDir, "home.md"));
+  const originalEditSource = ["---", "title: Editing example", "tags: keep, these", "---", "", "# Editing", "", "Editable **paragraph**.", "", "> Original quote", "{.is-info}", "", "- [ ] Task one", "- [x] Task two", "", '<div id="html-object"><strong>Original HTML</strong></div>', "", '<input id="html-checkbox" type="checkbox">', "", '<iframe id="editable-frame" src="https://example.com" width="500" height="180"></iframe>', "", "Final untouched paragraph.", ""].join("\n");
+  fs.mkdirSync(editDir, { recursive: true });
+  fs.writeFileSync(editPage.fsPath, originalEditSource);
+  let editDoc: vscode.TextDocument;
+  const editorText = ".wk-block-editor textarea";
+  const applyButton = '.wk-block-editor [data-action="apply"]';
+  const cancelButton = '.wk-block-editor [data-action="cancel"]';
+  const fill = async (kind: ViewKind, text: string) => {
+    await waitFor("block editor", async () => (await api.query(kind, editorText)).count === 1);
+    await api.input(kind, editorText, text);
+  };
+  const apply = async (kind: ViewKind, expected: string) => {
+    const mark = paints.length;
+    await api.click(kind, applyButton);
+    await waitFor("edited document buffer", () => editDoc.getText().includes(expected));
+    await waitPaint(kind, editPage, mark);
+    await waitFor("closed block editor", async () => (await api.query(kind, editorText)).count === 0);
+  };
+
+  await step("text block Cancel leaves source untouched; Apply updates the buffer and native Undo restores it", async () => {
+    await vscode.commands.executeCommand("workbench.action.closeAllEditors");
+    editDoc = await vscode.workspace.openTextDocument(editPage);
+    const mark = paints.length;
+    await vscode.commands.executeCommand("vscode.openWith", editPage, "wikijsViewer.page");
+    await waitPaint("editor", editPage, mark);
+    await api.click("editor", "#wk-contents > p", { double: true });
+    await fill("editor", "Discard this draft.");
+    await api.click("editor", cancelButton);
+    if (editDoc.getText() !== originalEditSource) throw new Error("Cancel changed the document");
+    await api.click("editor", "#wk-contents > p", { double: true });
+    await fill("editor", "Edited **paragraph**.");
+    await shot("15-text-block-editor");
+    // Real keyboard focus + Ctrl+Enter exercises the textarea shortcut in the editor webview.
+    await driver({ action: "click", fx: 0.7, fy: 0.55 });
+    await api.click("editor", "#wk-contents > p", { double: true }); // focuses the existing draft
+    await waitFor("editing keyboard focus", async () => (await api.state("editor")).focused);
+    const applyMark = paints.length;
+    await keys("^{ENTER}");
+    await waitFor("keyboard Apply", () => editDoc.getText().includes("Edited **paragraph**."));
+    await waitPaint("editor", editPage, applyMark);
+    if (!editDoc.isDirty || fs.readFileSync(editPage.fsPath, "utf8") !== originalEditSource) throw new Error("Apply must update the buffer without implicitly saving");
+    const undoMark = paints.length;
+    await vscode.commands.executeCommand("undo");
+    await waitFor("native document Undo", () => editDoc.getText() === originalEditSource);
+    await waitPaint("editor", editPage, undoMark);
+    return "Apply and Undo changed only the paragraph; disk content unchanged";
+  });
+
+  await step("task and HTML checkboxes update their source, and quote blocks retain Wiki.js attributes", async () => {
+    const mark = paints.length;
+    await api.click("editor", '.task-list-item-checkbox');
+    await waitFor("checked Markdown marker", () => editDoc.getText().includes("- [x] Task one"));
+    await waitPaint("editor", editPage, mark);
+    const htmlMark = paints.length;
+    await api.click("editor", '#html-checkbox');
+    await waitFor("checked HTML attribute", () => /id="html-checkbox"[^>]* checked/.test(editDoc.getText()));
+    await waitPaint("editor", editPage, htmlMark);
+    await api.click("editor", "blockquote", { double: true });
+    const source = (await api.query("editor", editorText)).value;
+    if (source !== "> Original quote\n{.is-info}") throw new Error(`wrong quote source: ${source}`);
+    await fill("editor", "> Revised quote\n{.is-warning}");
+    await apply("editor", "> Revised quote\n{.is-warning}");
+    if ((await api.query("editor", "blockquote.is-warning")).count !== 1) throw new Error("quote style did not update");
+    await shot("16-checkboxes-and-quote");
+  });
+
+  await step("Shift-click edits HTML objects; the compact attributes and embedded-frame actions apply exact source changes", async () => {
+    await api.click("editor", "#html-object", { shiftKey: true });
+    await fill("editor", '<div id="html-object"><em>Revised HTML</em></div>');
+    await shot("17-html-object-editor");
+    await apply("editor", '<em>Revised HTML</em>');
+    await api.click("editor", ".wk-edit-attributes");
+    await fill("editor", "---\ntitle: Revised title\ntags: keep, these\n---");
+    await apply("editor", "title: Revised title");
+    if ((await api.state("editor")).title !== "Revised title") throw new Error("compact title did not update");
+    await api.click("editor", ".wk-edit-frame");
+    await fill("editor", '<iframe id="editable-frame" src="https://example.com" width="500" height="140" title="Edited frame"></iframe>');
+    await apply("editor", 'title="Edited frame"');
+    if ((await api.query("editor", "#editable-frame", "sandbox")).attr?.includes("allow-top-navigation")) throw new Error("edited embed lost its sandbox");
+    await shot("18-attributes-and-html-result");
+  });
+
+  await step("background changes cannot overwrite a draft; stale Apply is rejected without losing text", async () => {
+    await api.click("editor", "#wk-contents > p", { double: true });
+    await fill("editor", "Draft to keep.");
+    const external = new vscode.WorkspaceEdit();
+    external.insert(editDoc.uri, editDoc.positionAt(editDoc.getText().length), "\nConcurrent source edit.\n");
+    await vscode.workspace.applyEdit(external);
+    await sleep(500);
+    await api.click("editor", applyButton);
+    await waitFor("visible stale-edit error", async () => /changed|no longer/.test((await api.query("editor", ".wk-edit-error")).text ?? ""));
+    if ((await api.query("editor", editorText)).value !== "Draft to keep.") throw new Error("conflict lost the draft");
+    if (editDoc.getText().includes("Draft to keep.") || !editDoc.getText().includes("Concurrent source edit.")) throw new Error("stale draft overwrote source");
+    await shot("19-preserved-conflicting-draft");
+    await api.click("editor", cancelButton);
+  });
+
+  await step("the side preview can edit and cancel blocks; Save persists only the applied document", async () => {
+    await vscode.window.showTextDocument(editDoc, { viewColumn: vscode.ViewColumn.One, preview: false });
+    const mark = paints.length;
+    await vscode.commands.executeCommand("wikijsViewer.openToSide", editPage);
+    await waitPaint("preview", editPage, mark);
+    await api.click("preview", "#wk-contents > p", { double: true });
+    await fill("preview", "Side preview **edit**.");
+    await apply("preview", "Side preview **edit**.");
+    if (!editDoc.getText().includes("Final untouched paragraph.")) throw new Error("unrelated content changed");
+    await api.click("preview", ".wk-edit-attributes");
+    await fill("preview", "---\ntitle: Cancelled\n---");
+    await api.click("preview", cancelButton);
+    if (editDoc.getText().includes("Cancelled")) throw new Error("side preview Cancel changed attributes");
+    await shot("20-side-preview-editing");
+    await editDoc.save();
+    if (fs.readFileSync(editPage.fsPath, "utf8") !== editDoc.getText()) throw new Error("Save did not persist applied edits");
+    await vscode.commands.executeCommand("workbench.action.closeAllEditors");
+  });
+
+  // A failed editing step must not leave a disposable dirty buffer that triggers a save prompt.
+  for (const doc of vscode.workspace.textDocuments.filter(d => samePath(d.uri.fsPath, editPage) && d.isDirty)) {
+    await vscode.window.showTextDocument(doc);
+    await vscode.commands.executeCommand("workbench.action.files.revert");
+  }
+
   await step("vault files are byte-identical after the run", async () => {
     const changed = Object.entries(PAGES).filter(([k, u]) => hash(u) !== before[k]);
     const dirty = vscode.workspace.textDocuments.filter((d) => d.isDirty).map((d) => d.uri.fsPath);

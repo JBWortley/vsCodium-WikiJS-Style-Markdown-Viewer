@@ -1,8 +1,8 @@
 {
   "name": "wikijs-page-viewer",
   "displayName": "Wiki.js Style Markdown Viewer",
-  "description": "Read-only Wiki.js-style Markdown previews for VSCodium and Visual Studio Code.",
-  "version": "0.3.1",
+  "description": "Wiki.js-style Markdown viewing and block editing for VSCodium and Visual Studio Code.",
+  "version": "0.4.0",
   "publisher": "wikijs-style",
   "private": true,
   "license": "AGPL-3.0-only",

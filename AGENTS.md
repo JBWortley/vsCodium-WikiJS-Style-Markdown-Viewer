@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Read-only Wiki.js-style Markdown viewer for VSCodium and VS Code.
+Wiki.js-style Markdown viewer and block editor for VSCodium and VS Code.
 
 ## Workstation boundary
 
@@ -18,7 +18,9 @@ npm run check
 
 `npm run check` (typecheck, unit/golden tests and build) must pass before every commit.
 
-1. The extension never writes to Markdown source files.
+1. Only explicit user Apply/checkbox actions may edit document buffers, through undoable
+   WorkspaceEdit operations. Never serialize the rendered page back to Markdown or save a
+   document implicitly. Validate source spans and document versions before applying edits.
 2. Fidelity first. Prove renderer changes with fresh live golden captures. Do not silently
    improve Markdown output.
 3. Keep `markdown-it` 11.0.1 and `markdown-it-attrs` 3.0.3 pinned. Rendering stays in the

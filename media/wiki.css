@@ -1214,3 +1214,20 @@ div.code-toolbar > .toolbar button:hover {
   font-size: 0.875rem;
   word-break: break-all;
 }
+/* Page editing controls sit outside wiki content and keep the attributes compact. */
+.wk-edit-tools { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 8px; color:var(--vscode-descriptionForeground,#aaa); font-size:12px; }
+.wk-edit-tools button, .wk-edit-frame { color:var(--vscode-textLink-foreground,#90caf9); background:transparent; border:1px solid var(--vscode-button-border,#555); border-radius:3px; padding:3px 8px; cursor:pointer; }
+.wk-edit-frame { display:block; margin:4px 0; }
+.wk-block-editor { margin:12px 0 20px; padding:12px; border:1px solid var(--vscode-focusBorder,#42a5f5); border-radius:4px; background:var(--vscode-editorWidget-background,#252526); color:var(--vscode-editor-foreground,#eee); }
+.wk-block-editor label { display:block; font-size:13px; font-weight:600; }
+.wk-block-editor textarea { display:block; box-sizing:border-box; width:100%; min-height:90px; resize:vertical; margin:8px 0; padding:10px; font:13px/1.5 var(--vscode-editor-font-family,monospace); color:var(--vscode-input-foreground,#eee); background:var(--vscode-input-background,#151515); border:1px solid var(--vscode-input-border,#666); white-space:pre-wrap; }
+.wk-edit-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.wk-edit-actions button { padding:5px 12px; border-radius:3px; border:1px solid transparent; cursor:pointer; }
+.wk-edit-apply { color:var(--vscode-button-foreground,#fff); background:var(--vscode-button-background,#087cc1); }
+.wk-edit-cancel { color:var(--vscode-button-secondaryForeground,#eee); background:var(--vscode-button-secondaryBackground,#444); }
+.wk-edit-actions span { font-size:12px; color:var(--vscode-descriptionForeground,#aaa); }
+.wk-edit-error { color:var(--vscode-errorForeground,#ff8a80); font-size:13px; margin-top:8px; }
+.wk-edit-error:empty { display:none; }
+.wk-block-editor button:disabled { opacity:.6; cursor:wait; }
+#wk-contents [data-wk-edit]:focus-visible, .wk-edit-tools button:focus-visible, .wk-block-editor :focus-visible, .wk-edit-frame:focus-visible { outline:2px solid var(--vscode-focusBorder,#42a5f5); outline-offset:2px; }
+#wk-contents input[data-wk-check]:not(:disabled) { cursor:pointer; }

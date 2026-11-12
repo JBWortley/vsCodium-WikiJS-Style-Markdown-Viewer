@@ -43,7 +43,7 @@ view; command palette refreshes the active view or previews of the current Markd
 - [x] Run background checks, independent code review and address material findings.
 - [x] Obtain consent, pass both live editor gates and inspect screenshots.
 - [x] Package/install the gated build without launching/restarting editors.
-- [ ] Commit and publish.
+- [x] Commit and publish (8ea87fc; GitHub CI passed).
 
 ## Review record
 

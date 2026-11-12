@@ -51,7 +51,7 @@ the snapshot CLI does not use the extension host's worker deadline.
 
 ## Live editor gate (Windows)
 
-Each run takes about two minutes and operates the keyboard, mouse, clipboard and focus.
+Each run takes about three to four minutes and operates the keyboard, mouse, clipboard and focus.
 Obtain explicit consent for that exact run before passing `--allow-desktop-control`.
 Without the flag, the command exits before launching an editor.
 
@@ -70,6 +70,10 @@ The suite covers editor switching, shortcuts, navigation, frontmatter, copy, liv
 scrolling, HTTPS embeds and hostile HTML. Asset checks use disposable files outside the
 workspace: SVG saves, atomic replacement, missing-directory creation and manual refresh in
 both view types. They verify loaded image dimensions and retain scroll/expanded details.
+Editing checks use a separate disposable document: text Apply/Cancel and keyboard Apply,
+native Undo, Markdown/HTML checkboxes, quotes, Shift-click HTML, compact YAML attributes,
+iframe editing, conflicting external changes, side-preview editing and explicit Save.
+The original demo/private wiki files must remain byte-identical.
 Unsupported editor features report SKIP.
 Add a step for every user-facing flow you change.
 

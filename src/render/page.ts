@@ -2,9 +2,13 @@ import { splitFrontmatter, type Frontmatter } from "./frontmatter";
 import { createMarkdown, type MarkdownOptions } from "./markdown";
 import { processHtml, type HtmlCoreContext } from "./htmlCore";
 import type MarkdownIt from "markdown-it";
+import { renderEditable } from "./editMap";
+import type { EditTarget } from "../editing/edits";
 
 export interface RenderContext extends HtmlCoreContext {
   markdown: MarkdownOptions;
+  /** Optional editing metadata; absent in fidelity renders. */
+  editKey?: string;
 }
 
 export interface RenderedPage {
@@ -16,6 +20,7 @@ export interface RenderedPage {
   renderMs: number;
   /** Worker metadata for host file watching; not part of the rendered wiki HTML. */
   localAssets?: string[];
+  editTargets?: EditTarget[];
 }
 
 const mdCache = new Map<string, MarkdownIt>();
@@ -34,12 +39,14 @@ function markdownFor(options: MarkdownOptions): MarkdownIt {
 export function renderPage(source: string, ctx: RenderContext): RenderedPage {
   const started = performance.now();
   const { frontmatter, body, bodyLineOffset } = splitFrontmatter(source);
-  const rawHtml = markdownFor(ctx.markdown).render(body, { lineOffset: bodyLineOffset });
-  const { html } = processHtml(rawHtml, ctx);
+  const editable = ctx.editKey ? renderEditable(markdownFor(ctx.markdown), source, ctx.editKey) : undefined;
+  const rawHtml = editable?.html ?? markdownFor(ctx.markdown).render(body, { lineOffset: bodyLineOffset });
+  const { html } = processHtml(rawHtml, ctx, editable?.targets);
   return {
     pagePath: ctx.pagePath,
     frontmatter,
     contentHtml: html,
     renderMs: Math.round(performance.now() - started),
+    ...(editable ? { editTargets: editable.targets } : {}),
   };
 }

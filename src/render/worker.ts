@@ -25,6 +25,7 @@ parentPort?.on("message", (msg: WorkerRequest) => {
       pageExists: (p) => pages.has(p),
       resolveAsset: makeAssetResolver(msg.assets, path, file => localAssets.add(file)),
       markdown: msg.markdown,
+      editKey: msg.editKey,
     });
     page.localAssets = [...localAssets];
     response = { type: "rendered", id: msg.id, page };

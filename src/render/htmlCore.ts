@@ -4,6 +4,7 @@ import { uniqueHeadingId } from "./slug";
 import { DEFAULT_LOCALE, absoluteHref, stripHost, wikiPathFromHref } from "./paths";
 import { CLOBBERING_NAMES } from "./clobber";
 import { highlightFence } from "./highlight";
+import type { EditTarget } from "../editing/edits";
 
 export interface HtmlCoreContext {
   /** Wiki.js "host" setting: links starting with it plus "/" become internal links. */
@@ -35,7 +36,7 @@ const RESERVED_EXACT = /^\/[a-z]$/i;
  * root text/table wrapping), its code-highlighter child, and the visible effects of
  * html-security (DOMPurify). The webview runs DOMPurify itself as a second, independent layer.
  */
-export function processHtml(html: string, ctx: HtmlCoreContext): HtmlCoreResult {
+export function processHtml(html: string, ctx: HtmlCoreContext, edits?: EditTarget[]): HtmlCoreResult {
   const $ = load(html, null, false);
   highlightCodeBlocks($);
   classifyLinks($, ctx);
@@ -43,6 +44,14 @@ export function processHtml(html: string, ctx: HtmlCoreContext): HtmlCoreResult 
   wrapRootText($);
   wrapRootTables($);
   sanitize($);
+  if (edits) {
+    const blocks = new Set(edits.filter(t => t.kind !== "checkbox").map(t => t.id));
+    const checks = new Set(edits.filter(t => t.kind === "checkbox").map(t => t.id));
+    $("*").each((_, el) => {
+      if (!blocks.has($(el).attr("data-wk-edit") ?? "")) $(el).removeAttr("data-wk-edit");
+      if (!checks.has($(el).attr("data-wk-check") ?? "")) $(el).removeAttr("data-wk-check");
+    });
+  }
   if (ctx.resolveAsset) rewriteAssets($, ctx.resolveAsset);
   return { html: $.html(), headings };
 }
@@ -56,7 +65,9 @@ function highlightCodeBlocks($: CheerioAPI): void {
     const pre = $(code).parent();
     if (pre.hasClass("prismjs") || pre.parent().hasClass("code-toolbar")) return;
     const lang = /(?:^|\s)lang(?:uage)?-([\w-]+)/i.exec($(code).attr("class") ?? "")?.[1] ?? "";
-    pre.replaceWith(highlightFence($(code).text(), lang, pre.attr("data-line")));
+    const highlighted = highlightFence($(code).text(), lang, pre.attr("data-line"));
+    const edit = pre.attr("data-wk-edit");
+    pre.replaceWith(edit ? highlighted.replace(/^(<\w+)/, `$1 data-wk-edit="${escapeAttr(edit)}"`) : highlighted);
   });
 }
 
@@ -122,7 +133,7 @@ function wrapRootTables($: CheerioAPI): void {
 const REMOVE_WITH_CONTENT =
   "script,frame,frameset,object,embed,applet,base,meta,link,noscript,style,animate,set,animatemotion,animatetransform,mglyph,malignmark";
 /** iframe attributes DOMPurify (with Wiki.js's ADD_ATTR "allow") leaves; e.g. allowfullscreen goes. */
-const IFRAME_ATTRS = new Set(["src", "title", "width", "height", "style", "loading", "allow", "name", "id", "class", "align"]);
+const IFRAME_ATTRS = new Set(["src", "title", "width", "height", "style", "loading", "allow", "name", "id", "class", "align", "data-wk-edit"]);
 const URI_ATTRS = new Set(["href", "src", "xlink:href", "action", "formaction", "background", "poster", "cite", "data", "srcset", "values", "to", "from", "by"]);
 const DATA_URI_TAGS = new Set(["img", "audio", "video", "source", "image", "track"]);
 // DOMPurify's default ALLOWED_URI_REGEXP and attribute whitespace stripping.

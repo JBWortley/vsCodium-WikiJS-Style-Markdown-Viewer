@@ -5,7 +5,8 @@ import { EDITOR_VIEW_TYPE, FollowingPreview, PREVIEW_VIEW_TYPE, WikiPageEditorPr
 /** API returned from activate() only when running under the live test (ExtensionMode.Test). */
 export interface LiveTestApi {
   onDidPaint: WikiServices["onDidPaint"];
-  click(kind: ViewKind, selector: string): ReturnType<WikiView["testRequest"]>;
+  click(kind: ViewKind, selector: string, options?: { shiftKey?: boolean; double?: boolean }): ReturnType<WikiView["testRequest"]>;
+  input(kind: ViewKind, selector: string, text: string): ReturnType<WikiView["testRequest"]>;
   state(kind: ViewKind): ReturnType<WikiView["testRequest"]>;
   probeMessages(kind: ViewKind): ReturnType<WikiView["testRequest"]>;
   locate(kind: ViewKind, selector: string): ReturnType<WikiView["testRequest"]>;
@@ -98,7 +99,8 @@ export function activate(context: vscode.ExtensionContext): LiveTestApi | undefi
   };
   return {
     onDidPaint: services.onDidPaint,
-    click: (kind, selector) => viewOf(kind).testRequest({ type: "test:click", selector }),
+    click: (kind, selector, options) => viewOf(kind).testRequest({ type: "test:click", selector, ...options }),
+    input: (kind, selector, text) => viewOf(kind).testRequest({ type: "test:input", selector, text }),
     state: (kind) => viewOf(kind).testRequest({ type: "test:state" }),
     probeMessages: (kind) => viewOf(kind).testRequest({ type: "test:probeMessages" }),
     locate: (kind, selector) => viewOf(kind).testRequest({ type: "test:locate", selector }),

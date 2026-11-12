@@ -1,10 +1,11 @@
 # Wiki.js Style Markdown Viewer
 
-A read-only Markdown preview for **VSCodium and Visual Studio Code**, styled after Wiki.js 2.
+A Markdown viewer and block editor for **VSCodium and Visual Studio Code**, styled after Wiki.js 2.
 It renders local pages with callouts, heading anchors, tables, syntax highlighting and wiki
 links. A compact table shows YAML frontmatter above the page body.
 
-The viewer never writes to your Markdown files and needs no Wiki.js account or API key.
+Edits update the document buffer with Undo support; normal Save/autosave controls disk writes.
+No Wiki.js account or API key is needed.
 This is an independent project, not an official Wiki.js or VSCodium extension.
 
 ## Build and install
@@ -39,6 +40,26 @@ before distributing a build. Open `test/fixtures/wiki/home.md` for a synthetic d
 - Heading anchors jump within the page. Code blocks have a **Copy** button.
 - File links open inside the editor. Web links use the editor's external-link handling.
 - **Wiki.js: Show Viewer Log** shows the detected root and render timings.
+
+## Edit in the page
+
+- **Double-click text or a quote block** to edit its Markdown. **Shift-click an object** to
+  edit its original HTML or Markdown, including image tags and SVG elements. Focus a block
+  with Tab and press **F2** for keyboard access. HTML nested across quote/list lines opens its
+  Markdown container so the surrounding prefixes remain intact.
+- Use **Apply** / **Cancel** for each block (**Ctrl+Enter / Cmd+Enter** and **Esc** also work).
+  Apply updates the document buffer; use normal Save to write it to disk. Autosave follows
+  your editor settings. Undo/Redo work in the Markdown source and Wiki.js Page; for the side
+  preview, use Undo/Redo in its source editor.
+- Click Markdown task checkboxes or HTML checkboxes to update their source immediately.
+- **Edit attributes** opens the YAML frontmatter while keeping the normal header compact.
+  Invalid YAML is rejected and the draft is retained. Add/remove fields in the same editor.
+- Embedded frames have an **Edit HTML** button because clicks inside them belong to the
+  embedded website. Edited HTML still passes through both sanitizers.
+
+Only the selected source span changes. Background renders preserve a draft; if the document
+changes elsewhere, Apply rejects the stale edit. Cancel and reopen the block to use the latest
+source. Unapplied drafts are local to their view and are not saved as document changes.
 
 ## Settings
 
