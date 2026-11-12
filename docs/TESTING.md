@@ -71,7 +71,8 @@ scrolling, HTTPS embeds and hostile HTML. Asset checks use disposable files outs
 workspace: SVG saves, atomic replacement, missing-directory creation and manual refresh in
 both view types. They verify loaded image dimensions and retain scroll/expanded details.
 Editing checks use a separate disposable document: text Apply/Cancel and keyboard Apply,
-native Undo, Markdown/HTML checkboxes, quotes, Shift-click HTML, compact YAML attributes,
+native Undo, Markdown/HTML checkbox sizing and toggling (inspect both checked and unchecked
+Wiki.js colors/checkmarks in the screenshots), quotes, Shift-click HTML, compact YAML attributes,
 iframe editing, conflicting external changes, side-preview editing and explicit Save.
 The original demo/private wiki files must remain byte-identical.
 Unsupported editor features report SKIP.

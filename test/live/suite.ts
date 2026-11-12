@@ -650,6 +650,16 @@ export async function run(): Promise<void> {
     return "Apply and Undo changed only the paragraph; disk content unchanged";
   });
 
+  await step("editable task and HTML checkboxes retain Wiki.js sizing and appearance", async () => {
+    for (const selector of ['.task-list-item-checkbox', '#html-checkbox']) {
+      const { rect } = await api.locate("editor", selector);
+      if (!rect || rect.width < 17 || rect.height < 17) throw new Error(`${selector} fell back to a small native checkbox: ${JSON.stringify(rect)}`);
+      if ((await api.query("editor", `${selector}:disabled`)).count !== 0) throw new Error(`${selector} is not interactive`);
+    }
+    await shot("15b-wikijs-checkbox-appearance");
+    return "Wiki.js size retained; unchecked/checked colors and checkmarks require screenshot inspection";
+  });
+
   await step("task and HTML checkboxes update their source, and quote blocks retain Wiki.js attributes", async () => {
     const mark = paints.length;
     await api.click("editor", '.task-list-item-checkbox');
