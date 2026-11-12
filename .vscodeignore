@@ -1,0 +1,12 @@
+**
+!dist/extension.js
+!dist/renderWorker.js
+!dist/preview.js
+!dist/*.LEGAL.txt
+!dist/THIRD-PARTY-NOTICES.txt
+!media/**
+!package.json
+!README.md
+!NOTICE.md
+!LICENSE
+!licenses/**

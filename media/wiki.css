@@ -1,0 +1,1216 @@
+/*
+ * Wiki.js page style for the Wiki.js Page Viewer.
+ *
+ * Only the page body is styled like the site; there is no site chrome. Content rules
+ * (".v-main .contents …") keep the selector structure and values of the Wiki.js 2 default theme
+ * (theme0.css, AGPL-3.0, see NOTICE.md) so the cascade resolves the same way.
+ */
+
+:root {
+  /* MDI 5.8.55 (Apache-2.0): format-quote-open, information, alert, close-circle, check-bold, open-in-new, menu */
+  --wk-icon-quote: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M10%2C7L8%2C11H11V17H5V11L7%2C7H10M18%2C7L16%2C11H19V17H13V11L15%2C7H18Z%22%2F%3E%3C%2Fsvg%3E");
+  --wk-icon-info: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M13%2C9H11V7H13M13%2C17H11V11H13M12%2C2A10%2C10%200%200%2C0%202%2C12A10%2C10%200%200%2C0%2012%2C22A10%2C10%200%200%2C0%2022%2C12A10%2C10%200%200%2C0%2012%2C2Z%22%2F%3E%3C%2Fsvg%3E");
+  --wk-icon-alert: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M13%2014H11V9H13M13%2018H11V16H13M1%2021H23L12%202L1%2021Z%22%2F%3E%3C%2Fsvg%3E");
+  --wk-icon-danger: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M12%2C2C17.53%2C2%2022%2C6.47%2022%2C12C22%2C17.53%2017.53%2C22%2012%2C22C6.47%2C22%202%2C17.53%202%2C12C2%2C6.47%206.47%2C2%2012%2C2M15.59%2C7L12%2C10.59L8.41%2C7L7%2C8.41L10.59%2C12L7%2C15.59L8.41%2C17L12%2C13.41L15.59%2C17L17%2C15.59L13.41%2C12L17%2C8.41L15.59%2C7Z%22%2F%3E%3C%2Fsvg%3E");
+  --wk-icon-success: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M9%2C20.42L2.79%2C14.21L5.62%2C11.38L9%2C14.77L18.88%2C4.88L21.71%2C7.71L9%2C20.42Z%22%2F%3E%3C%2Fsvg%3E");
+  --wk-icon-external: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M14%2C3V5H17.59L7.76%2C14.83L9.17%2C16.24L19%2C6.41V10H21V3M19%2C19H5V5H12V3H5C3.89%2C3%203%2C3.9%203%2C5V19A2%2C2%200%200%2C0%205%2C21H19A2%2C2%200%200%2C0%2021%2C19V12H19V19Z%22%2F%3E%3C%2Fsvg%3E");
+  --wk-icon-menu: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M3%2C6H21V8H3V6M3%2C11H21V13H3V11M3%2C16H21V18H3V16Z%22%2F%3E%3C%2Fsvg%3E");
+}
+
+/* ---------------------------------------------------------------------------------------
+ * 1. Neutralize VS Code's injected webview defaults (body padding, link/code/blockquote
+ *    colors, image max-height, focus outline) and set the Vuetify base.
+ * ------------------------------------------------------------------------------------- */
+html {
+  font-size: 16px;
+  box-sizing: border-box;
+  /* The Vuetify reset says "scroll", but Wiki.js's app.css overrides it with auto !important. */
+  overflow-y: auto !important;
+  -webkit-text-size-adjust: 100%;
+  word-break: normal;
+  tab-size: 4;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+*,
+:after,
+:before {
+  background-repeat: no-repeat;
+  box-sizing: inherit;
+}
+/* Vuetify 2 generic reset ("ress"), as bundled by Wiki.js. Note `* { margin: 0; padding: 0 }`:
+   headings and lists have no UA margins on the live site. */
+:after,
+:before {
+  text-decoration: inherit;
+  vertical-align: inherit;
+}
+* {
+  padding: 0;
+  margin: 0;
+}
+hr {
+  overflow: visible;
+  height: 0;
+}
+details,
+main {
+  display: block;
+}
+summary {
+  display: list-item;
+}
+small {
+  font-size: 80%;
+}
+[hidden] {
+  display: none;
+}
+abbr[title] {
+  border-bottom: none;
+  text-decoration: underline dotted;
+}
+a {
+  background-color: transparent;
+}
+a:active,
+a:hover {
+  outline-width: 0;
+}
+code,
+kbd,
+pre,
+samp {
+  font-family: monospace, monospace;
+}
+pre {
+  font-size: 1em;
+}
+b,
+strong {
+  font-weight: bolder;
+}
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+sub {
+  bottom: -0.25em;
+}
+sup {
+  top: -0.5em;
+}
+input {
+  border-radius: 0;
+}
+[disabled] {
+  cursor: default;
+}
+textarea {
+  overflow: auto;
+  resize: vertical;
+}
+button,
+input,
+optgroup,
+select,
+textarea {
+  font: inherit;
+}
+button {
+  overflow: visible;
+}
+button,
+select {
+  text-transform: none;
+}
+[role="button"],
+[type="button"],
+[type="reset"],
+[type="submit"],
+button {
+  cursor: pointer;
+  color: inherit;
+}
+[type="reset"],
+[type="submit"],
+button,
+html [type="button"] {
+  -webkit-appearance: button;
+}
+button,
+input,
+select,
+textarea {
+  background-color: transparent;
+  border-style: none;
+}
+select {
+  -webkit-appearance: none;
+}
+img {
+  border-style: none;
+}
+progress {
+  vertical-align: baseline;
+}
+body {
+  margin: 0;
+  padding: 0;
+  background: #121212;
+  color: #fff;
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+}
+.wk-app img,
+.wk-app video {
+  max-height: none;
+}
+.wk-app a:focus:not(:focus-visible) {
+  outline: none;
+}
+.v-application {
+  font-family: Roboto, sans-serif;
+  line-height: 1.5;
+  background-color: #121212;
+  color: #fff;
+  min-height: 100vh;
+}
+.v-application ol,
+.v-application ul {
+  padding-left: 24px;
+}
+.v-application p {
+  margin-bottom: 16px;
+}
+.v-application code,
+.v-application kbd {
+  border-radius: 3px;
+  font-size: 85%;
+  font-weight: 900;
+}
+.v-application kbd {
+  background: #212529;
+  color: #fff;
+  padding: 0.2rem 0.4rem;
+}
+
+/* ---------------------------------------------------------------------------------------
+ * 2. The view: the page's frontmatter as a compact table, then the page body. No site chrome.
+ * ------------------------------------------------------------------------------------- */
+.wk-container {
+  padding: 12px 20px 0;
+}
+
+/* Every frontmatter field in file order. One column in a narrow side panel; with room, two or
+   three columns that read top to bottom (file order), like the YAML block itself. */
+.wk-frontmatter {
+  column-width: 280px;
+  column-gap: 24px;
+  margin: 0 0 12px;
+  padding: 6px 12px;
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.wk-fm-row {
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+  break-inside: avoid;
+  padding: 2px 0;
+  border-bottom: 1px solid #2a2a2a;
+}
+.wk-fm-row dt {
+  flex: 0 0 84px;
+  color: #9e9e9e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wk-fm-row dd {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: #e0e0e0;
+  overflow-wrap: anywhere;
+}
+.wk-frontmatter-raw {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #e0e0e0;
+  font-family: Roboto Mono, "Courier New", monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.wk-render-error {
+  margin: 16px 20px;
+  padding: 12px 16px;
+  border-radius: 4px;
+  background-color: #b71c1c;
+  color: #ffcdd2;
+}
+
+
+/* ---------------------------------------------------------------------------------------
+ * 3. Page contents: Wiki.js default theme (theme0.css), light base + dark overrides.
+ * ------------------------------------------------------------------------------------- */
+.v-main .contents {
+  color: #424242;
+  padding: 0.5rem 0 50px;
+  position: relative;
+}
+.v-main .contents > div > :first-child {
+  margin-top: 0;
+}
+.theme--dark .v-main .contents {
+  color: #e0e0e0;
+}
+.v-main .contents a {
+  color: #1976d2;
+}
+.v-main .contents a.is-internal-link.is-invalid-page {
+  color: #d32f2f;
+}
+.theme--dark .v-main .contents a.is-internal-link.is-invalid-page {
+  color: #ef9a9a;
+}
+.v-main .contents a.is-external-link {
+  padding-right: 3px;
+}
+/* MDI glyph "open-in-new"; the theme's invalid `font-size:24px/1` leaves it at 1em. */
+.v-main .contents a.is-external-link:after {
+  display: inline-block;
+  content: "";
+  width: 1em;
+  height: 1em;
+  margin-left: 3px;
+  vertical-align: -0.125em;
+  background-color: #9e9e9e;
+  -webkit-mask: var(--wk-icon-external) center / contain no-repeat;
+  mask: var(--wk-icon-external) center / contain no-repeat;
+  text-decoration: none;
+}
+.theme--dark .v-main .contents a {
+  color: #90caf9;
+}
+.v-main .contents h1,
+.v-main .contents h2,
+.v-main .contents h3,
+.v-main .contents h4,
+.v-main .contents h5,
+.v-main .contents h6 {
+  position: relative;
+}
+.v-main .contents h1:first-child,
+.v-main .contents h2:first-child,
+.v-main .contents h3:first-child,
+.v-main .contents h4:first-child,
+.v-main .contents h5:first-child,
+.v-main .contents h6:first-child {
+  padding-top: 0;
+}
+.v-main .contents h1:hover .toc-anchor,
+.v-main .contents h2:hover .toc-anchor,
+.v-main .contents h3:hover .toc-anchor,
+.v-main .contents h4:hover .toc-anchor,
+.v-main .contents h5:hover .toc-anchor,
+.v-main .contents h6:hover .toc-anchor {
+  display: block;
+}
+.v-main .contents h1 .toc-anchor,
+.v-main .contents h2 .toc-anchor,
+.v-main .contents h3 .toc-anchor,
+.v-main .contents h4 .toc-anchor,
+.v-main .contents h5 .toc-anchor,
+.v-main .contents h6 .toc-anchor {
+  display: none;
+  position: absolute;
+  right: 1rem;
+  bottom: 0.5rem;
+  font-size: 1.25rem;
+  text-decoration: none;
+  color: #9e9e9e;
+}
+.v-main .contents :is(h1, h2, h3, h4, h5, h6) + :is(h2, h3, h4, h5, h6) {
+  margin-top: 8px;
+}
+.v-main .contents :is(h1, h2, h3, h4, h5, h6) + hr.footnotes-sep {
+  display: none;
+}
+.v-main .contents h1 {
+  padding: 0;
+  color: #1565c0;
+  margin-top: 2rem;
+  position: relative;
+}
+.theme--dark .v-main .contents h1 {
+  color: #e0e0e0;
+}
+.v-main .contents h1:after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #1976d2, rgba(25, 118, 210, 0));
+  border-radius: 3px;
+}
+.theme--dark .v-main .contents h1:after {
+  background: linear-gradient(90deg, #64b5f6, #2196f3 10%, rgba(13, 71, 161, 0));
+}
+.v-main .contents h2 {
+  margin: 1rem 0 0;
+  color: #424242;
+  position: relative;
+}
+.theme--dark .v-main .contents h2 {
+  color: #bdbdbd;
+}
+.v-main .contents h2:after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, #616161, rgba(97, 97, 97, 0));
+}
+.theme--dark .v-main .contents h2:after {
+  background: linear-gradient(90deg, #e0e0e0, rgba(97, 97, 97, 0));
+}
+.v-main .contents h3 {
+  margin: 8px 0 0;
+  color: #616161;
+  position: relative;
+}
+.theme--dark .v-main .contents h3 {
+  color: #757575;
+}
+.v-main .contents h3:after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, #9e9e9e, hsla(0, 0%, 62%, 0) 90%);
+}
+.v-main .contents h4,
+.v-main .contents h5,
+.v-main .contents h6 {
+  font-size: 1rem;
+  margin: 8px 0 0;
+  color: #616161;
+  position: relative;
+}
+.theme--dark .v-main .contents h4,
+.theme--dark .v-main .contents h5,
+.theme--dark .v-main .contents h6 {
+  color: #757575;
+}
+.v-main .contents h4:after,
+.v-main .contents h5:after,
+.v-main .contents h6:after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, #9e9e9e, hsla(0, 0%, 62%, 0) 70%);
+}
+.v-main .contents h5:after {
+  background: linear-gradient(90deg, #9e9e9e, hsla(0, 0%, 62%, 0) 50%);
+}
+.v-main .contents h6:after {
+  background: linear-gradient(90deg, #9e9e9e, hsla(0, 0%, 62%, 0) 30%);
+}
+.v-main .contents p {
+  padding: 1rem 0 0;
+  margin: 0;
+}
+.contents > div > p:first-child {
+  padding-top: 0;
+}
+.v-application .v-main .contents p {
+  margin-bottom: 0;
+}
+.v-main .contents hr {
+  margin: 1rem 0;
+  height: 1px;
+  border: none;
+  background-color: #bdbdbd;
+}
+.theme--dark .v-main .contents hr {
+  background-color: #616161;
+}
+.v-main .contents .emoji {
+  height: 1.25em;
+  margin: 0 1px -4px;
+}
+
+/* Callouts: `> text` + `{.is-info}` etc. */
+.v-main .contents blockquote {
+  padding: 0 1rem 1rem;
+  background-color: #eceff1;
+  border-left: 55px solid #607d8b;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  position: relative;
+}
+.theme--dark .v-main .contents blockquote {
+  background-color: #263238;
+}
+.v-main .contents blockquote:before {
+  display: inline-block;
+  content: "";
+  width: 24px;
+  height: 24px;
+  position: absolute;
+  margin-top: -12px;
+  top: 50%;
+  left: -38px;
+  background-color: hsla(0, 0%, 100%, 0.7);
+  -webkit-mask: var(--wk-callout-icon, var(--wk-icon-quote)) center / contain no-repeat;
+  mask: var(--wk-callout-icon, var(--wk-icon-quote)) center / contain no-repeat;
+}
+.v-main .contents blockquote > p:first-child .emoji {
+  margin-right: 0.5rem;
+}
+.v-main .contents blockquote.valign-center > p {
+  display: flex;
+  align-items: center;
+}
+.v-main .contents blockquote.is-info {
+  background-color: #e3f2fd;
+  border-color: #64b5f6;
+  color: #0d47a1;
+  --wk-callout-icon: var(--wk-icon-info);
+}
+.v-main .contents blockquote.is-info code:not([class^="language-"]) {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+.theme--dark .v-main .contents blockquote.is-info {
+  background-color: #0d47a1;
+  color: #e3f2fd;
+  border-color: #2196f3;
+}
+.v-main .contents blockquote.is-warning {
+  background-color: #fff3e0;
+  border-color: #ffb74d;
+  color: #b33f00;
+  --wk-callout-icon: var(--wk-icon-alert);
+}
+.v-main .contents blockquote.is-warning code:not([class^="language-"]) {
+  background-color: #fff3e0;
+  color: #ef6c00;
+}
+.theme--dark .v-main .contents blockquote.is-warning {
+  background-color: #cd4800;
+  color: #ffe0b2;
+  border-color: #ff9800;
+  box-shadow: 0 0 2px 0 #212121;
+}
+.v-main .contents blockquote.is-danger {
+  background-color: #ffebee;
+  border-color: #e57373;
+  color: #b71c1c;
+  --wk-callout-icon: var(--wk-icon-danger);
+}
+.v-main .contents blockquote.is-danger code:not([class^="language-"]) {
+  background-color: #ffebee;
+  color: #c62828;
+}
+.theme--dark .v-main .contents blockquote.is-danger {
+  background-color: #b71c1c;
+  color: #ffcdd2;
+  border-color: #f44336;
+}
+.v-main .contents blockquote.is-success {
+  background-color: #e8f5e9;
+  border-color: #81c784;
+  color: #1b5e20;
+  --wk-callout-icon: var(--wk-icon-success);
+}
+.v-main .contents blockquote.is-success code:not([class^="language-"]) {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+.theme--dark .v-main .contents blockquote.is-success {
+  background-color: #1b5e20;
+  color: #e8f5e9;
+  border-color: #4caf50;
+}
+
+/* Lists */
+.v-main .contents ol,
+.v-main .contents ul:not(.tabset-tabs) {
+  padding-top: 1rem;
+  width: 100%;
+}
+.v-main .contents ol li > ol,
+.v-main .contents ol li > ul,
+.v-main .contents ul:not(.tabset-tabs) li > ol,
+.v-main .contents ul:not(.tabset-tabs) li > ul {
+  padding-top: 0.5rem;
+  padding-left: 1rem;
+}
+.v-main .contents ol li + li,
+.v-main .contents ul:not(.tabset-tabs) li + li {
+  margin-top: 0.5rem;
+}
+.v-main .contents ol.links-list,
+.v-main .contents ul:not(.tabset-tabs).links-list {
+  padding-left: 0;
+  list-style-type: none;
+}
+.v-main .contents ol.links-list li,
+.v-main .contents ul:not(.tabset-tabs).links-list li {
+  background-color: #fafafa;
+  background-image: linear-gradient(180deg, #fff, #fafafa);
+  border-right: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  border-left: 5px solid #e0e0e0;
+  box-shadow: 0 3px 8px 0 rgba(116, 129, 141, 0.1);
+  padding: 1rem;
+  border-radius: 5px;
+  font-weight: 500;
+}
+.v-main .contents ol.links-list li:before,
+.v-main .contents ul:not(.tabset-tabs).links-list li:before {
+  content: "";
+  display: none;
+}
+.v-main .contents ol.links-list li > a,
+.v-main .contents ul:not(.tabset-tabs).links-list li > a {
+  display: block;
+  text-decoration: none;
+  margin: -1rem;
+  padding: 1rem;
+}
+.v-main .contents ol.links-list li > a > em,
+.v-main .contents ul:not(.tabset-tabs).links-list li > a > em {
+  font-weight: 400;
+  font-style: normal;
+  color: #616161;
+  display: inline-block;
+  padding-left: 0.5rem;
+  border-left: 1px solid #e0e0e0;
+  margin-left: 0.5rem;
+}
+.theme--dark .v-main .contents ol.links-list li,
+.theme--dark .v-main .contents ul:not(.tabset-tabs).links-list li {
+  background-color: #fafafa;
+  background-image: linear-gradient(180deg, #2e2e2e, #212121);
+  border-right: 1px solid #212121;
+  border-bottom: 1px solid #212121;
+  border-left: 5px solid #616161;
+  box-shadow: 0 3px 8px 0 rgba(0, 0, 0, 0.1);
+}
+.theme--dark .v-main .contents ol.links-list li:hover,
+.theme--dark .v-main .contents ul:not(.tabset-tabs).links-list li:hover {
+  background-image: linear-gradient(180deg, #262626, #191919);
+  border-left-color: #7986cb;
+  cursor: pointer;
+}
+.v-main .contents ol.grid-list,
+.v-main .contents ul:not(.tabset-tabs).grid-list {
+  margin: 1rem 0 0;
+  background-color: #fff;
+  border: 1px solid #eee;
+  padding: 1px;
+  display: inline-block;
+  list-style-type: none;
+}
+.theme--dark .v-main .contents ol.grid-list,
+.theme--dark .v-main .contents ul:not(.tabset-tabs).grid-list {
+  background-color: #000;
+  border: 1px solid #424242;
+}
+.v-main .contents ol.grid-list li,
+.v-main .contents ul:not(.tabset-tabs).grid-list li {
+  background-color: #fafafa;
+  padding: 0.6rem 1rem;
+  display: block;
+}
+.v-main .contents ol.grid-list li + li,
+.v-main .contents ul:not(.tabset-tabs).grid-list li + li {
+  margin-top: 0;
+}
+.v-main .contents ol.grid-list li:before,
+.v-main .contents ul:not(.tabset-tabs).grid-list li:before {
+  content: "";
+  display: none;
+}
+.theme--dark .v-main .contents ol.grid-list li,
+.theme--dark .v-main .contents ul:not(.tabset-tabs).grid-list li {
+  background-color: #212121;
+}
+.theme--dark .v-main .contents ol.grid-list li:nth-child(odd),
+.theme--dark .v-main .contents ul:not(.tabset-tabs).grid-list li:nth-child(odd) {
+  background-color: #141414;
+}
+.v-main .contents ul:not(.tabset-tabs):not(.contains-task-list) {
+  list-style: none;
+}
+.v-main .contents ul:not(.tabset-tabs):not(.contains-task-list) > li:before {
+  position: absolute;
+  left: -1.1rem;
+  content: "\25B8";
+  color: #757575;
+  width: 1.35rem;
+}
+.v-main .contents ol > li,
+.v-main .contents ul:not(.tabset-tabs) > li {
+  position: relative;
+}
+.v-main .contents ol > li > p,
+.v-main .contents ul:not(.tabset-tabs) > li > p {
+  display: inline-block;
+  vertical-align: top;
+  padding-top: 0;
+}
+.v-main .contents ol > li > p:first-child,
+.v-main .contents ul:not(.tabset-tabs) > li > p:first-child {
+  width: 100%;
+}
+.v-main .contents dl dt {
+  margin-top: 0.3em;
+  margin-bottom: 0.3em;
+  font-weight: 700;
+}
+.v-main .contents dl dd {
+  margin-left: 1.125em;
+  margin-bottom: 0.75em;
+}
+.v-main .contents dl dd > p {
+  padding: 0;
+}
+
+/* Inline code. The wiki asks for "Roboto Mono, monospace"; Roboto Mono is not installed, so Firefox
+   (the wiki's reference browser here) falls back to Courier New while Chromium, and so this webview,
+   would pick Consolas. Measured on the live site: 9.60 px per glyph at 16 px = Courier New. */
+.v-main .contents code {
+  background-color: #e8eaf6;
+  padding: 0 5px;
+  color: #283593;
+  font-family: Roboto Mono, "Courier New", monospace;
+  font-weight: 400;
+  font-size: 1rem;
+  box-shadow: none;
+}
+.v-main .contents code:after,
+.v-main .contents code:before {
+  display: none;
+}
+.theme--dark .v-main .contents code {
+  background-color: #141414;
+  color: #c5cae9;
+}
+
+/* Code blocks: Prism "twilight" + line-numbers (vendor.css), then the theme overrides. */
+pre[class*="language-"].line-numbers {
+  position: relative;
+  padding-left: 3.8em;
+  counter-reset: linenumber;
+}
+pre[class*="language-"].line-numbers > code {
+  position: relative;
+  white-space: inherit;
+}
+.line-numbers .line-numbers-rows {
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  font-size: 100%;
+  left: -3.8em;
+  width: 3em;
+  letter-spacing: -1px;
+  border-right: 1px solid #999;
+  user-select: none;
+}
+.line-numbers-rows > span {
+  display: block;
+  counter-increment: linenumber;
+}
+.line-numbers-rows > span:before {
+  content: counter(linenumber);
+  color: #999;
+  display: block;
+  padding-right: 0.8em;
+  text-align: right;
+}
+code[class*="language-"],
+pre[class*="language-"] {
+  color: #fff;
+  background: none;
+  font-family: Consolas, Monaco, Andale Mono, Ubuntu Mono, monospace;
+  font-size: 1em;
+  text-align: left;
+  text-shadow: 0 -0.1em 0.2em #000;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  line-height: 1.5;
+  tab-size: 4;
+  hyphens: none;
+}
+:not(pre) > code[class*="language-"],
+pre[class*="language-"] {
+  background: #141414;
+}
+pre[class*="language-"] {
+  border-radius: 0.5em;
+  border: 0.3em solid #545454;
+  box-shadow: inset 1px 1px 0.5em #000;
+  margin: 0.5em 0;
+  overflow: auto;
+  padding: 1em;
+}
+pre[class*="language-"]::selection {
+  background: #27292a;
+}
+code[class*="language-"]::selection,
+code[class*="language-"] ::selection,
+pre[class*="language-"]::selection,
+pre[class*="language-"] ::selection {
+  text-shadow: none;
+  background: hsla(0, 0%, 93%, 0.15);
+}
+:not(pre) > code[class*="language-"] {
+  border-radius: 0.3em;
+  border: 0.13em solid #545454;
+  box-shadow: inset 1px 1px 0.3em -0.1em #000;
+  padding: 0.15em 0.2em 0.05em;
+  white-space: normal;
+}
+.token.cdata,
+.token.comment,
+.token.doctype,
+.token.prolog {
+  color: #787878;
+}
+.token.namespace,
+.token.punctuation {
+  opacity: 0.7;
+}
+.token.boolean,
+.token.deleted,
+.token.number,
+.token.tag {
+  color: #cf694a;
+}
+.token.builtin,
+.token.constant,
+.token.keyword,
+.token.property,
+.token.selector,
+.token.symbol {
+  color: #f9ee9a;
+}
+.language-css .token.string,
+.style .token.string,
+.token.attr-name,
+.token.attr-value,
+.token.char,
+.token.entity,
+.token.inserted,
+.token.operator,
+.token.string,
+.token.url,
+.token.variable {
+  color: #919e6b;
+}
+.token.atrule {
+  color: #7386a5;
+}
+.token.important,
+.token.regex {
+  color: #e9c163;
+}
+.token.bold,
+.token.important {
+  font-weight: 700;
+}
+.token.italic {
+  font-style: italic;
+}
+.token.entity {
+  cursor: help;
+}
+.language-markup .token.attr-name,
+.language-markup .token.punctuation,
+.language-markup .token.tag {
+  color: #ad895c;
+}
+.token {
+  position: relative;
+  z-index: 1;
+}
+/* Prism toolbar + copy-to-clipboard plugins (vendor.css). */
+div.code-toolbar {
+  position: relative;
+}
+div.code-toolbar > .toolbar {
+  position: absolute;
+  top: 0.3em;
+  right: 0.2em;
+  transition: opacity 0.3s ease-in-out;
+  opacity: 0;
+  z-index: 2;
+}
+div.code-toolbar:hover > .toolbar,
+div.code-toolbar:focus-within > .toolbar {
+  opacity: 1;
+}
+div.code-toolbar > .toolbar .toolbar-item {
+  display: inline-block;
+}
+div.code-toolbar > .toolbar button {
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  line-height: normal;
+  overflow: visible;
+  padding: 0;
+  user-select: none;
+  cursor: pointer;
+}
+div.code-toolbar > .toolbar button {
+  color: #bbb;
+  font-size: 0.8em;
+  padding: 0 0.5em;
+  background: hsla(0, 0%, 87.8%, 0.2);
+  box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.2);
+  border-radius: 0.5em;
+}
+div.code-toolbar > .toolbar button:focus,
+div.code-toolbar > .toolbar button:hover {
+  color: inherit;
+  text-decoration: none;
+}
+.v-main .contents .prismjs {
+  border: none;
+  border-radius: 5px;
+  box-shadow: none;
+  background-color: #212121;
+  padding: 1rem 1rem 1rem 3rem;
+  margin: 1rem 0;
+}
+.theme--dark .v-main .contents .prismjs {
+  background-color: #141414;
+}
+.v-main .contents .prismjs > code {
+  background-color: transparent;
+  padding: 0;
+  color: #fff;
+  box-shadow: none;
+  display: block;
+  font-size: 0.85rem;
+  font-family: Roboto Mono, "Courier New", monospace;
+}
+.v-main .contents .prismjs > code:after,
+.v-main .contents .prismjs > code:before {
+  content: normal;
+  letter-spacing: normal;
+}
+.v-main .contents .diagram {
+  margin-top: 1rem;
+  overflow: auto;
+}
+.v-main .contents .diagram svg:first-child {
+  direction: ltr;
+}
+
+/* Task lists */
+.v-main .contents .contains-task-list {
+  padding-left: 0;
+}
+.v-main .contents .task-list-item {
+  position: relative;
+  list-style-type: none;
+}
+.v-main .contents .task-list-item-checkbox[disabled] {
+  width: 1.1rem;
+  height: 1.1rem;
+  top: 2px;
+  position: relative;
+  margin-right: 2px;
+}
+.v-main .contents .task-list-item-checkbox[disabled]:after {
+  position: absolute;
+  left: 0;
+  top: 0;
+  content: " ";
+  display: block;
+  width: 1.1rem;
+  height: 1.1rem;
+  background-color: #fff;
+  border: 1px solid #bdbdbd;
+  border-radius: 2px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1rem;
+  text-align: center;
+}
+.theme--dark .v-main .contents .task-list-item-checkbox[disabled]:after {
+  background-color: #212121;
+  border-color: #616161;
+}
+.v-main .contents .task-list-item-checkbox[disabled][checked]:after {
+  content: "\2713";
+}
+.v-main .contents .task-list-item .contains-task-list {
+  padding: 0.5rem 0 0 1.5rem;
+}
+
+/* Tables (markdown and raw HTML) */
+.v-main .contents table {
+  margin: 0.5rem 0;
+  border-spacing: 0;
+  border-radius: 5px;
+  border: 1px solid #e0e0e0;
+}
+.theme--dark .v-main .contents table {
+  border-color: #757575;
+}
+.v-main .contents table.dense td,
+.v-main .contents table.dense th {
+  font-size: 0.85rem;
+  padding: 0.5rem;
+}
+.v-main .contents table th {
+  padding: 0.75rem;
+  border-bottom: 2px solid #9e9e9e;
+  color: #757575;
+  background-color: #f5f5f5;
+}
+.theme--dark .v-main .contents table th {
+  background-color: #0d0d0d;
+  border-bottom-color: #757575;
+  color: #9e9e9e;
+}
+.v-main .contents table th:first-child {
+  border-top-left-radius: 7px;
+}
+.v-main .contents table th:last-child {
+  border-top-right-radius: 7px;
+}
+.v-main .contents table td {
+  padding: 0.75rem;
+}
+.v-main .contents table tr td {
+  border-bottom: 1px solid #e0e0e0;
+  border-right: 1px solid #f5f5f5;
+}
+.theme--dark .v-main .contents table tr td {
+  border-bottom-color: #616161;
+  border-right-color: #424242;
+}
+.v-main .contents table tr td:nth-child(2n) {
+  background-color: #fafafa;
+}
+.theme--dark .v-main .contents table tr td:nth-child(2n) {
+  background-color: #171717;
+}
+.v-main .contents table tr td:last-child {
+  border-right: none;
+}
+.v-main .contents table tr:nth-child(2n) td {
+  background-color: #fafafa;
+}
+.theme--dark .v-main .contents table tr:nth-child(2n) td {
+  background-color: #2e2e2e;
+}
+.v-main .contents table tr:nth-child(2n) td:nth-child(2n) {
+  background-color: #f5f5f5;
+}
+.theme--dark .v-main .contents table tr:nth-child(2n) td:nth-child(2n) {
+  background-color: #292929;
+}
+.v-main .contents table tr:last-child td {
+  border-bottom: none;
+}
+.v-main .contents table tr:last-child td:first-child {
+  border-bottom-left-radius: 7px;
+}
+.v-main .contents table tr:last-child td:last-child {
+  border-bottom-right-radius: 7px;
+}
+.v-main .contents .table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Images */
+.v-main .contents img {
+  max-width: 100%;
+}
+.v-main .contents img.align-left {
+  float: left;
+  margin: 0 1rem 1rem 0;
+}
+.v-main .contents img.align-right {
+  float: right;
+  margin: 0 0 1rem 1rem;
+  z-index: 1;
+  position: relative;
+}
+.v-main .contents img.align-center {
+  display: block;
+  max-width: 100%;
+  margin: auto;
+}
+.v-main .contents img.decor-shadow {
+  box-shadow: 0 3px 8px 0 rgba(116, 129, 141, 0.1);
+}
+.v-main .contents img.decor-outline {
+  border: 1px solid #bdbdbd;
+}
+
+/* Details */
+.v-main .contents details {
+  background-color: #fafafa;
+  margin: 1rem 2rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 7px;
+}
+.v-main .contents details > p {
+  padding-left: 0;
+}
+.v-main .contents details > summary {
+  border-radius: 7px;
+  background-color: #fafafa;
+  cursor: pointer;
+  display: list-item;
+  align-items: center;
+  padding: 0.4rem 1rem;
+  transition: background-color 0.4s ease;
+}
+.v-main .contents details > summary:focus {
+  outline: none;
+  background-color: #f5f5f5;
+}
+.v-main .contents details > summary > h1,
+.v-main .contents details > summary h2,
+.v-main .contents details > summary h3,
+.v-main .contents details > summary h4,
+.v-main .contents details > summary h5,
+.v-main .contents details > summary h6 {
+  width: 95%;
+  display: inline-block;
+}
+.v-main .contents details[open] {
+  padding: 1rem;
+}
+.v-main .contents details[open] > summary {
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  margin: -1rem -1rem 1rem;
+}
+.theme--dark .v-main .contents details,
+.theme--dark .v-main .contents details > summary {
+  background-color: #212121;
+  border-color: #616161;
+}
+.theme--dark .v-main .contents details[open] > summary {
+  background-color: #2e2e2e;
+}
+
+/* Marks and mentions */
+.v-main .contents mark.pen-red {
+  color: #f44336;
+  background-color: initial;
+}
+.v-main .contents mark.pen-green {
+  color: #4caf50;
+  background-color: initial;
+}
+.v-main .contents mark.marker-blue {
+  background-color: #64b5f6;
+}
+.v-main .contents mark.marker-yellow {
+  background-color: #fff176;
+}
+.v-main .contents mark.marker-pink {
+  background-color: #f06292;
+}
+.v-main .contents mark.marker-green {
+  background-color: #81c784;
+}
+.v-main .contents .text-huge {
+  font-size: 1.8em;
+}
+.v-main .contents .text-big {
+  font-size: 1.4em;
+}
+.v-main .contents .text-small {
+  font-size: 0.85em;
+}
+.v-main .contents .text-tiny {
+  font-size: 0.7em;
+}
+
+/* Vuetify components pasted into page HTML (the home page embeds the small "menu" FAB). */
+.v-main .contents .v-btn.v-btn--fab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  vertical-align: middle;
+  background-color: #1976d2;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.2), 0 6px 10px 0 rgba(0, 0, 0, 0.14), 0 1px 18px 0 rgba(0, 0, 0, 0.12);
+}
+.v-main .contents .v-btn.v-btn--fab.v-size--small {
+  width: 40px;
+  height: 40px;
+}
+.v-main .contents .v-btn .v-btn__content {
+  display: inline-flex;
+  align-items: center;
+}
+.v-main .contents i.mdi-menu {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background-color: currentColor;
+  -webkit-mask: var(--wk-icon-menu) center / contain no-repeat;
+  mask: var(--wk-icon-menu) center / contain no-repeat;
+}
+
+/* Embeds the viewer will not load (non-https iframe). */
+.v-main .contents .wk-embed-blocked {
+  display: inline-block;
+  max-width: 100%;
+  padding: 12px 16px;
+  margin: 0.5rem 0;
+  border: 1px dashed #616161;
+  border-radius: 4px;
+  color: #9e9e9e;
+  font-size: 0.875rem;
+  word-break: break-all;
+}

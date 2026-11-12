@@ -1,0 +1,203 @@
+{
+  "name": "wikijs-page-viewer",
+  "displayName": "Wiki.js Style Markdown Viewer",
+  "description": "Read-only Wiki.js-style Markdown previews for VSCodium and Visual Studio Code.",
+  "version": "0.3.0",
+  "publisher": "wikijs-style",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "vscode": "^1.90.0",
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+  },
+  "categories": [
+    "Visualization"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:markdown",
+    "onCustomEditor:wikijsViewer.page",
+    "onWebviewPanel:wikijsViewer.preview"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "wikijsViewer.open",
+        "title": "Open as Wiki.js Page",
+        "category": "Wiki.js",
+        "icon": {
+          "light": "media/icon.svg",
+          "dark": "media/icon.svg"
+        }
+      },
+      {
+        "command": "wikijsViewer.openToSide",
+        "title": "Open Wiki.js Preview to the Side",
+        "category": "Wiki.js",
+        "icon": {
+          "light": "media/icon.svg",
+          "dark": "media/icon.svg"
+        }
+      },
+      {
+        "command": "wikijsViewer.editSource",
+        "title": "Edit Markdown Source to the Side",
+        "category": "Wiki.js",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "wikijsViewer.showLog",
+        "title": "Show Viewer Log",
+        "category": "Wiki.js"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "wikijsViewer.open",
+          "alt": "wikijsViewer.openToSide",
+          "when": "resourceLangId == markdown && activeCustomEditorId != 'wikijsViewer.page' && !notebookEditorFocused",
+          "group": "navigation@-10"
+        },
+        {
+          "command": "wikijsViewer.editSource",
+          "when": "activeCustomEditorId == 'wikijsViewer.page'",
+          "group": "navigation@-10"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "wikijsViewer.open",
+          "when": "resourceLangId == markdown",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "wikijsViewer.editSource",
+          "when": "activeCustomEditorId == 'wikijsViewer.page'"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Wiki.js Page Viewer",
+      "properties": {
+        "wikijsViewer.useForPreviewShortcuts": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "`Ctrl+Shift+V` opens the page as a Wiki.js Page (and goes back to the source from there); `Ctrl+K V` opens the Wiki.js preview beside the text editor. Turn off to give these keys back to VSCodium's built-in Markdown preview."
+        },
+        "wikijsViewer.wikiRoot": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path of the wiki root (the folder that holds `home.md` and `assets/`). Empty: the nearest ancestor of the page that contains `home.md`, else the workspace folder."
+        },
+        "wikijsViewer.siteUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Your wiki base URL, for example https://wiki.example.test. Matching links open local pages. Leave empty to keep absolute URLs external."
+        },
+        "wikijsViewer.markdown.breaks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Convert single line breaks to <br>."
+        },
+        "wikijsViewer.markdown.typographer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Smart quotes and typographic replacements."
+        },
+        "wikijsViewer.markdown.linkify": {
+          "type": "boolean",
+          "default": true,
+          "description": "Turn bare URLs into links."
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "wikijsViewer.open",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "!terminalFocus && config.wikijsViewer.useForPreviewShortcuts && ((editorFocus && resourceLangId == markdown && !notebookEditorFocused && activeCustomEditorId != 'vscode.markdown.editor') || activeCustomEditorId == 'vscode.markdown.preview.editor')"
+      },
+      {
+        "command": "wikijsViewer.editSource",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "!terminalFocus && config.wikijsViewer.useForPreviewShortcuts && activeCustomEditorId == 'wikijsViewer.page'"
+      },
+      {
+        "command": "wikijsViewer.openToSide",
+        "key": "ctrl+k v",
+        "mac": "cmd+k v",
+        "when": "config.wikijsViewer.useForPreviewShortcuts && editorFocus && editorLangId == markdown && !notebookEditorFocused"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "wikijsViewer.page",
+        "displayName": "Wiki.js Page",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          },
+          {
+            "filenamePattern": "*.markdown"
+          }
+        ],
+        "priority": "option"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "typecheck": "tsc --noEmit --pretty false",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run test && npm run build",
+    "package": "npm run check && vsce package --no-dependencies -o dist/wikijs-page-viewer.vsix",
+    "deploy": "node scripts/deploy.mjs",
+    "snapshot": "node scripts/snapshot.mjs",
+    "livetest": "node scripts/livetest.mjs"
+  },
+  "dependencies": {
+    "cheerio": "1.1.2",
+    "dompurify": "3.4.17",
+    "js-yaml": "4.3.2",
+    "markdown-it": "11.0.1",
+    "markdown-it-abbr": "1.0.4",
+    "markdown-it-attrs": "3.0.3",
+    "markdown-it-emoji": "1.4.0",
+    "markdown-it-footnote": "3.0.2",
+    "markdown-it-sub": "1.0.0",
+    "markdown-it-sup": "1.0.0",
+    "markdown-it-task-lists": "2.1.1",
+    "prismjs": "1.30.0",
+    "punycode": "2.3.1"
+  },
+  "devDependencies": {
+    "@mdi/js": "5.8.55",
+    "@types/js-yaml": "4.0.9",
+    "@types/jsdom": "21.1.7",
+    "@types/markdown-it": "12.2.3",
+    "@types/node": "22.18.0",
+    "@types/prismjs": "1.26.5",
+    "@types/vscode": "1.90.0",
+    "@vscode/vsce": "4.1.0",
+    "esbuild": "0.25.10",
+    "jsdom": "30.1.3",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JBWortley/vsCodium-WikiJS-Style-Markdown-Viewer.git"
+  },
+  "keywords": [
+    "markdown",
+    "wikijs",
+    "vscodium",
+    "preview"
+  ]
+}
