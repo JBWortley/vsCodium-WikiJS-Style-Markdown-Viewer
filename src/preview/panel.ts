@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import path from "node:path";
 import crypto from "node:crypto";
 import { RenderService } from "./renderService";
+import { AssetWatcher } from "./assetWatcher";
 import { fileForPage, findWikiRoot, pagePathFor, scanPages } from "./wikiRoot";
 import { classifyLinkTarget } from "../render/paths";
 import type { FromWebview, ToWebview } from "../render/protocol";
@@ -132,6 +133,9 @@ export class WikiView implements vscode.Disposable {
   private renderTimer?: NodeJS.Timeout;
   private renderSeq = 0;
   private ready = false;
+  private disposed = false;
+  private assetCacheKey = crypto.randomBytes(8).toString("hex");
+  private readonly assets = new AssetWatcher(() => this.refresh());
   private readonly messageToken = crypto.randomBytes(32).toString("hex");
   private readonly disposables: vscode.Disposable[] = [];
   private testWaiters: ((state: TestState) => void)[] = [];
@@ -165,11 +169,19 @@ export class WikiView implements vscode.Disposable {
   }
 
   async setDocument(doc: vscode.TextDocument): Promise<void> {
+    if (this.disposed) return;
+    if (doc !== this.doc) {
+      this.assets.update(undefined, []);
+      this.assetCacheKey = crypto.randomBytes(8).toString("hex");
+    }
+    ++this.renderSeq;
     this.doc = doc;
     const settings = readSettings();
     const folder = vscode.workspace.getWorkspaceFolder(doc.uri)?.uri.fsPath;
     const root = doc.uri.scheme === "file" ? findWikiRoot(doc.uri.fsPath, settings.wikiRoot, folder) : undefined;
     if (root !== this.root) {
+      this.assets.update(undefined, []);
+      this.assetCacheKey = crypto.randomBytes(8).toString("hex");
       this.root = root;
       this.services.log(`wiki root: ${root ?? "(none: unsaved document)"}`);
     }
@@ -213,13 +225,21 @@ export class WikiView implements vscode.Disposable {
   }
 
   scheduleRender(delay = RENDER_DEBOUNCE_MS): void {
+    if (this.disposed) return;
+    ++this.renderSeq;
     clearTimeout(this.renderTimer);
     this.renderTimer = setTimeout(() => void this.renderNow(), delay);
   }
 
+  /** Re-fetch local resources without reloading the webview or losing reading state. */
+  refresh(): void {
+    this.assetCacheKey = crypto.randomBytes(8).toString("hex");
+    this.scheduleRender();
+  }
+
   private async renderNow(): Promise<void> {
     const { panel, doc } = this;
-    if (!doc || !this.ready || !panel.visible) return;
+    if (this.disposed || !doc || !this.ready || !panel.visible) return;
     const seq = ++this.renderSeq;
     const settings = readSettings();
     const source = doc.getText();
@@ -230,7 +250,7 @@ export class WikiView implements vscode.Disposable {
     try {
       const root = this.root ?? path.dirname(doc.uri.fsPath);
       if (this.root) this.services.renderer.setIndex(this.root, await this.services.index.get(this.root));
-      const page = await this.services.renderer.render({
+      const { localAssets = [], ...page } = await this.services.renderer.render({
         source,
         pagePath: doc.uri.scheme === "file" ? pagePathFor(doc.uri.fsPath, root) : "untitled",
         siteUrl: settings.siteUrl,
@@ -239,9 +259,11 @@ export class WikiView implements vscode.Disposable {
           rootFsPath: root,
           rootUri: panel.webview.asWebviewUri(vscode.Uri.file(root)).toString().replace(/\/+$/, ""),
           docDirFsPath: doc.uri.scheme === "file" ? path.dirname(doc.uri.fsPath) : root,
+          cacheKey: this.assetCacheKey,
         },
       });
-      if (seq !== this.renderSeq || doc !== this.doc) return;
+      if (this.disposed || seq !== this.renderSeq || doc !== this.doc) return;
+      this.assets.update(this.root, localAssets);
       this.post({ type: "render", uri: doc.uri.toString(), page });
       this.services.log(`rendered ${page.pagePath} in ${page.renderMs} ms`);
       const anchor = this.services.pendingAnchors.get(doc.uri.toString());
@@ -267,6 +289,7 @@ export class WikiView implements vscode.Disposable {
       await this.renderNow();
       return;
     }
+    if (msg.type === "refresh") this.refresh();
     if (msg.type === "link") await this.followLink(msg.href);
     if (msg.type === "painted") this.services.firePainted({ ...msg, kind: this.kind });
     if (msg.type === "copy") {
@@ -337,6 +360,9 @@ export class WikiView implements vscode.Disposable {
   }
 
   dispose(): void {
+    this.disposed = true;
+    ++this.renderSeq;
+    this.assets.dispose();
     clearTimeout(this.renderTimer);
     this.services.views.delete(this);
     for (const d of this.disposables) d.dispose();

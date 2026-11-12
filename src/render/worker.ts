@@ -4,6 +4,7 @@
  * runaway render without freezing VSCodium.
  */
 import { parentPort } from "node:worker_threads";
+import path from "node:path";
 import { renderPage } from "./page";
 import { makeAssetResolver } from "./assets";
 import type { WorkerRequest, WorkerResponse } from "./protocol";
@@ -17,13 +18,15 @@ parentPort?.on("message", (msg: WorkerRequest) => {
   }
   let response: WorkerResponse;
   try {
+    const localAssets = new Set<string>();
     const page = renderPage(msg.source, {
       siteUrl: msg.siteUrl,
       pagePath: msg.pagePath,
       pageExists: (p) => pages.has(p),
-      resolveAsset: makeAssetResolver(msg.assets),
+      resolveAsset: makeAssetResolver(msg.assets, path, file => localAssets.add(file)),
       markdown: msg.markdown,
     });
+    page.localAssets = [...localAssets];
     response = { type: "rendered", id: msg.id, page };
   } catch (err) {
     response = { type: "error", id: msg.id, message: err instanceof Error ? err.message : String(err) };

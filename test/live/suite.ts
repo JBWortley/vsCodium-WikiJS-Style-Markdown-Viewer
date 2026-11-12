@@ -498,6 +498,108 @@ export async function run(): Promise<void> {
     }
   });
 
+  // Disposable assets outside the workspace exercise RelativePattern watches as well as real
+  // disk saves. Never change the user's wiki or the tracked synthetic demo pages.
+  const assetsDir = path.join(OUT, "asset-refresh");
+  const assetPage = vscode.Uri.file(path.join(assetsDir, "home.md"));
+  const drawing = path.join(assetsDir, "assets", "drawing [draft].svg");
+  const missing = path.join(assetsDir, "assets", "new-folder", "added.svg");
+  const svg = (width: number) => `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="80"><rect id="layer" width="100%" height="100%" fill="${width === 120 ? "#e8590c" : "#2f9e44"}"/><text x="8" y="45" fill="white">${width}px</text></svg>`;
+  fs.mkdirSync(path.dirname(drawing), { recursive: true });
+  fs.writeFileSync(drawing, svg(120));
+  fs.writeFileSync(assetPage.fsPath, [
+    "---", "title: Asset refresh test", "---", "# Local SVG refresh", "",
+    '<img id="live-svg" src="/assets/drawing%20%5Bdraft%5D.svg#layer" width="320" height="80">', "",
+    '<details id="refresh-details"><summary>Keep this section open</summary><p>Expanded state survives refresh.</p></details>', "",
+    '<img id="added-svg" src="/assets/new-folder/added.svg" width="80" height="80">', "",
+    ...Array.from({ length: 35 }, (_, i) => `## Reading section ${i + 1}\n\nText to keep a stable reading position while assets refresh.\n`),
+  ].join("\n"));
+  const waitImage = (kind: ViewKind, selector: string, width: number) => waitFor(`loaded ${width}px SVG in ${kind}`, async () => {
+    const q = await api.query(kind, selector, "src");
+    return q.image?.complete && q.image.width === width ? q : undefined;
+  });
+
+  await step("saving or replacing a local SVG refreshes the Wiki.js Page and recovers missing assets", async () => {
+    await vscode.commands.executeCommand("workbench.action.closeAllEditors");
+    const mark = paints.length;
+    await vscode.commands.executeCommand("vscode.openWith", assetPage, "wikijsViewer.page");
+    await waitPaint("editor", assetPage, mark);
+    const before = await waitImage("editor", "#live-svg", 120);
+    if (!before.attr?.endsWith("#layer")) throw new Error("SVG fragment was lost");
+    await api.click("editor", "#refresh-details summary");
+    fs.writeFileSync(drawing, svg(240));
+    const after = await waitImage("editor", "#live-svg", 240);
+    if (before.attr === after.attr) throw new Error("asset URL did not change");
+    const replacement = drawing + ".tmp";
+    fs.writeFileSync(replacement, svg(180));
+    fs.renameSync(replacement, drawing);
+    await waitImage("editor", "#live-svg", 180);
+    fs.mkdirSync(path.dirname(missing), { recursive: true });
+    fs.writeFileSync(missing, svg(80));
+    await waitImage("editor", "#added-svg", 80);
+    if ((await api.query("editor", "#refresh-details[open]")).count !== 1) throw new Error("expanded section closed during asset refresh");
+    await shot("12-svg-auto-refresh");
+    return { before: before.image, after: after.image, atomicReplacementWidth: 180, missingAssetRecovered: true };
+  });
+
+  await step("Refresh Wiki.js Page command and Ctrl+Shift+R re-fetch assets without losing scroll or details", async () => {
+    // Title action is visible in the screenshots; the command it invokes runs here, followed
+    // by the real keyboard shortcut to verify contribution scope and webview focus handling.
+    const before = await waitImage("editor", "#live-svg", 180);
+    let mark = paints.length;
+    await vscode.commands.executeCommand("wikijsViewer.refresh");
+    await waitPaint("editor", assetPage, mark);
+    const command = await waitImage("editor", "#live-svg", 180);
+    if (command.attr === before.attr) throw new Error("refresh command reused the cached URL");
+    await api.click("editor", 'a.toc-anchor[href="#reading-section-15"]');
+    const position = await waitFor("reading position", async () => {
+      const s = await api.state("editor");
+      return s.scrollY > 500 ? s : undefined;
+    });
+    await sleep(500); // allow smooth anchor scrolling to finish
+    const settled = await api.state("editor");
+    await driver({ action: "click", fx: 0.7, fy: 0.5 });
+    await waitFor("Wiki.js Page keyboard focus", async () => (await api.state("editor")).focused);
+    mark = paints.length;
+    await shortcut("^+r", () => paints.slice(mark).some(p => p.kind === "editor" && samePath(vscode.Uri.parse(p.uri).fsPath, assetPage)));
+    await waitPaint("editor", assetPage, mark);
+    const keyboard = await waitImage("editor", "#live-svg", 180);
+    const after = await api.state("editor");
+    if (keyboard.attr === command.attr) throw new Error("Ctrl+Shift+R did not re-fetch the asset");
+    if (Math.abs(after.scrollY - settled.scrollY) > 5) throw new Error(`refresh moved reading position: ${settled.scrollY} -> ${after.scrollY}`);
+    if ((await api.query("editor", "#refresh-details[open]")).count !== 1) throw new Error("refresh collapsed details");
+    await shot("13-manual-refresh-position");
+    return { initialScroll: position.scrollY, before: settled.scrollY, after: after.scrollY };
+  });
+
+  await step("side preview refreshes saved SVGs and Ctrl+Shift+R works with the preview focused", async () => {
+    await vscode.commands.executeCommand("workbench.action.closeAllEditors");
+    await vscode.window.showTextDocument(assetPage, { viewColumn: vscode.ViewColumn.One, preview: false });
+    const mark = paints.length;
+    await vscode.commands.executeCommand("wikijsViewer.openToSide", assetPage);
+    await waitPaint("preview", assetPage, mark);
+    await waitImage("preview", "#live-svg", 180);
+    fs.writeFileSync(drawing, svg(300));
+    const auto = await waitImage("preview", "#live-svg", 300);
+    // editor/title supplies this synthetic resource, even when the Markdown group is active.
+    const titleMark = paints.length;
+    await vscode.commands.executeCommand("wikijsViewer.refresh", vscode.Uri.parse("webview-panel:/webview-panel/live-preview"));
+    await waitPaint("preview", assetPage, titleMark);
+    const titleRefresh = await waitImage("preview", "#live-svg", 300);
+    if (titleRefresh.attr === auto.attr) throw new Error("side-preview title action reused the asset URL");
+    await vscode.commands.executeCommand("workbench.action.focusSecondEditorGroup");
+    await sleep(500);
+    await driver({ action: "click", fx: 0.85, fy: 0.6 });
+    await waitFor("side preview keyboard focus", async () => (await api.state("preview")).focused);
+    const refreshMark = paints.length;
+    await shortcut("^+r", () => paints.slice(refreshMark).some(p => p.kind === "preview" && samePath(vscode.Uri.parse(p.uri).fsPath, assetPage)));
+    await waitPaint("preview", assetPage, refreshMark);
+    const manual = await waitImage("preview", "#live-svg", 300);
+    if (manual.attr === titleRefresh.attr) throw new Error("side-preview Ctrl+Shift+R reused the asset URL");
+    await shot("14-side-preview-refresh");
+    return { loaded: manual.image, shortcutRefreshed: true };
+  });
+
   await step("vault files are byte-identical after the run", async () => {
     const changed = Object.entries(PAGES).filter(([k, u]) => hash(u) !== before[k]);
     const dirty = vscode.workspace.textDocuments.filter((d) => d.isDirty).map((d) => d.uri.fsPath);

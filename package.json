@@ -2,7 +2,7 @@
   "name": "wikijs-page-viewer",
   "displayName": "Wiki.js Style Markdown Viewer",
   "description": "Read-only Wiki.js-style Markdown previews for VSCodium and Visual Studio Code.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": "wikijs-style",
   "private": true,
   "license": "AGPL-3.0-only",
@@ -46,6 +46,12 @@
         "icon": "$(go-to-file)"
       },
       {
+        "command": "wikijsViewer.refresh",
+        "title": "Refresh Wiki.js Page",
+        "category": "Wiki.js",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "wikijsViewer.showLog",
         "title": "Show Viewer Log",
         "category": "Wiki.js"
@@ -53,6 +59,11 @@
     ],
     "menus": {
       "editor/title": [
+        {
+          "command": "wikijsViewer.refresh",
+          "when": "activeCustomEditorId == 'wikijsViewer.page' || activeWebviewPanelId == 'wikijsViewer.preview'",
+          "group": "navigation@-9"
+        },
         {
           "command": "wikijsViewer.open",
           "alt": "wikijsViewer.openToSide",

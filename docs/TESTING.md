@@ -67,7 +67,10 @@ profile and the synthetic wiki, revert typed changes and check source hashes.
 Results go to a temporary directory or `--out`; keep them outside version control.
 
 The suite covers editor switching, shortcuts, navigation, frontmatter, copy, live edits,
-scrolling, HTTPS embeds and hostile HTML. Unsupported editor features report SKIP.
+scrolling, HTTPS embeds and hostile HTML. Asset checks use disposable files outside the
+workspace: SVG saves, atomic replacement, missing-directory creation and manual refresh in
+both view types. They verify loaded image dimensions and retain scroll/expanded details.
+Unsupported editor features report SKIP.
 Add a step for every user-facing flow you change.
 
 After the gate, `npm run deploy -- --to vscodium,vscode` packages and installs through the

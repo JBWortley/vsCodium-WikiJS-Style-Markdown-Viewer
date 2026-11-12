@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { refreshViews } from "./preview/refresh";
 import { EDITOR_VIEW_TYPE, FollowingPreview, PREVIEW_VIEW_TYPE, WikiPageEditorProvider, WikiServices, type ViewKind, type WikiView } from "./preview/panel";
 
 /** API returned from activate() only when running under the live test (ExtensionMode.Test). */
@@ -72,6 +73,11 @@ export function activate(context: vscode.ExtensionContext): LiveTestApi | undefi
     vscode.commands.registerCommand("wikijsViewer.editSource", async (uri?: vscode.Uri) => {
       const target = needMarkdown(uri);
       if (target) await vscode.window.showTextDocument(target, { viewColumn: vscode.ViewColumn.Beside, preview: false });
+    }),
+    vscode.commands.registerCommand("wikijsViewer.refresh", (uri?: vscode.Uri) => {
+      if (!refreshViews(services.views, uri instanceof vscode.Uri ? uri : undefined, activeMarkdownUri())) {
+        void vscode.window.showInformationMessage("Open a Wiki.js Page or preview first.");
+      }
     }),
     vscode.commands.registerCommand("wikijsViewer.showLog", () => output.show(true)),
     vscode.window.registerWebviewPanelSerializer(PREVIEW_VIEW_TYPE, {

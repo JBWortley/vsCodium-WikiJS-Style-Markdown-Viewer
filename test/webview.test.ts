@@ -73,3 +73,54 @@ describe("webview message boundary", () => {
     } finally { f.dom.window.close(); }
   });
 });
+
+describe("asset refresh reconciliation", () => {
+  it("handles Ctrl+Shift+R and Cmd+Shift+R inside the page without forwarding the shortcut to the workbench", () => {
+    const f = fixture(false);
+    try {
+      const forwarded: KeyboardEvent[] = [];
+      f.window.addEventListener("keydown", event => forwarded.push(event as unknown as KeyboardEvent));
+      for (const modifier of ["ctrlKey", "metaKey"]) {
+        const event = new f.window.KeyboardEvent("keydown", { key: "r", [modifier]: true, shiftKey: true, bubbles: true, cancelable: true });
+        f.window.document.getElementById("trusted")!.dispatchEvent(event);
+        expect(event.defaultPrevented).toBe(true);
+      }
+      expect(f.messages.filter(message => message.type === "refresh")).toEqual([{ type: "refresh" }, { type: "refresh" }]);
+      expect(forwarded).toHaveLength(0);
+    } finally { f.dom.window.close(); }
+  });
+
+  it("does not treat typing, other shortcuts or keys in editable controls as page refresh", () => {
+    const f = fixture(false);
+    try {
+      const input = f.window.document.createElement("textarea");
+      f.window.document.body.appendChild(input);
+      input.dispatchEvent(new f.window.KeyboardEvent("keydown", { key: "r", ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true }));
+      for (const init of [{ key: "r" }, { key: "r", ctrlKey: true }, { key: "r", ctrlKey: true, altKey: true, shiftKey: true }]) {
+        f.window.document.body.dispatchEvent(new f.window.KeyboardEvent("keydown", { ...init, bubbles: true, cancelable: true }));
+      }
+      expect(f.messages.filter(message => message.type === "refresh")).toHaveLength(0);
+    } finally { f.dom.window.close(); }
+  });
+
+  it("updates changed asset URLs while retaining open details and unchanged content nodes", () => {
+    const f = fixture();
+    try {
+      const page = (key: string) => renderPage('<details><summary>More</summary><img src="/drawing.svg"></details>\n\nUnchanged paragraph', {
+        siteUrl: "", pagePath: "home", pageExists: () => true, markdown: WIKI_DEFAULTS,
+        resolveAsset: () => `https://res/wiki/drawing.svg?__wikijs_preview=${key}`,
+      });
+      const render = (key: string) => f.send({ type: "render", uri: "file:///demo/home.md", page: page(key), token: TOKEN });
+      render("first");
+      const paragraph = f.window.document.querySelector("#wk-contents > p");
+      const image = f.window.document.querySelector("img");
+      f.window.document.querySelector("details")!.open = true;
+      render("first");
+      expect(f.window.document.querySelector("img")).toBe(image);
+      render("next");
+      expect(f.window.document.querySelector("img")?.getAttribute("src")).toBe("https://res/wiki/drawing.svg?__wikijs_preview=next");
+      expect(f.window.document.querySelector("details")?.open).toBe(true);
+      expect(f.window.document.querySelector("#wk-contents > p")).toBe(paragraph);
+    } finally { f.dom.window.close(); }
+  });
+});

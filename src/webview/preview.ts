@@ -178,6 +178,17 @@ document.addEventListener("click", (event) => {
   else vscode.postMessage({ type: "link", href });
 });
 
+// Handle refresh inside the page, without taking over source-editor or terminal shortcuts.
+// Ctrl/Cmd+R is reserved by the extension-development host's bootstrap reload handler.
+document.addEventListener("keydown", (event) => {
+  if (event.key.toLowerCase() !== "r" || !(event.ctrlKey || event.metaKey) || event.altKey || !event.shiftKey) return;
+  const target = event.target;
+  if (target instanceof Element && target.closest("input, textarea, select, [contenteditable]:not([contenteditable=false])")) return;
+  event.preventDefault();
+  event.stopPropagation(); // the editor's forwarding listener lives on window
+  vscode.postMessage({ type: "refresh" });
+});
+
 // Forms in page HTML are kept (the wiki keeps them), but submitting one would navigate the
 // webview away and blank the preview: block every submission. Found by the live test.
 document.addEventListener(
@@ -278,10 +289,12 @@ window.addEventListener("message", (event: MessageEvent<ToWebview & { token?: st
     }
     case "test:query": {
       const all = document.querySelectorAll(msg.selector);
+      const image = all[0] instanceof HTMLImageElement ? all[0] : undefined;
       vscode.postMessage({
         ...baseState(),
         count: all.length,
         attr: msg.attr ? (all[0]?.getAttribute(msg.attr) ?? null) : undefined,
+        image: image ? { complete: image.complete, width: image.naturalWidth, height: image.naturalHeight } : undefined,
         pwned: typeof (window as unknown as { __pwned?: unknown }).__pwned,
       });
       break;

@@ -14,6 +14,8 @@ export interface RenderedPage {
   /** The page body, rendered the way the wiki renders it. */
   contentHtml: string;
   renderMs: number;
+  /** Worker metadata for host file watching; not part of the rendered wiki HTML. */
+  localAssets?: string[];
 }
 
 const mdCache = new Map<string, MarkdownIt>();

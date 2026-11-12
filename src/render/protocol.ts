@@ -6,6 +6,8 @@ export interface AssetBases {
   /** `webview.asWebviewUri(root)` without a trailing slash. */
   rootUri: string;
   docDirFsPath: string;
+  /** Stable during Markdown edits; changed when local assets must be fetched again. */
+  cacheKey?: string;
 }
 
 /** Extension host -> render worker. */
@@ -43,6 +45,7 @@ export type ToWebview =
 /** Webview -> extension host. */
 export type FromWebview =
   | { type: "ready" }
+  | { type: "refresh" }
   | { type: "link"; href: string }
   /** What the webview actually painted, for the log and the end-to-end test. */
   | { type: "painted"; uri: string; blocks: number; height: number; background: string; calloutBackground?: string; overflowX: number }
@@ -61,6 +64,8 @@ export type FromWebview =
       /** test:query: matches and the first match's attribute value. */
       count?: number;
       attr?: string | null;
+      /** Loaded image dimensions, so live checks verify the bytes fetched, not only the URL. */
+      image?: { complete: boolean; width: number; height: number };
       pwned?: string;
       /** document.hasFocus(): a modal workbench dialog (e.g. VSCodium's own link prompt) takes it away. */
       focused?: boolean;

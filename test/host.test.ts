@@ -26,7 +26,7 @@ describe("asset resolver", () => {
   const resolve = makeAssetResolver({ rootFsPath: wiki, rootUri: "https://res/wiki", docDirFsPath: path.dirname(page) });
   it("resolves wiki-root and page-relative paths with per-segment encoding", () => {
     expect(resolve("/assets/a%20b.png")).toBe("https://res/wiki/assets/a%20b.png");
-    expect(resolve("/assets/a b.png?v=2#x")).toBe("https://res/wiki/assets/a%20b.png");
+    expect(resolve("/assets/a b.png?v=2#x")).toBe("https://res/wiki/assets/a%20b.png?v=2#x");
     expect(resolve("img/x.png")).toBe("https://res/wiki/About-Drafting/img/x.png");
   });
   it("refuses anything outside the wiki root or with a scheme", () => {
@@ -35,6 +35,24 @@ describe("asset resolver", () => {
     expect(resolve("https://example.com/x.png")).toBeUndefined();
     expect(resolve("data:image/png;base64,AA")).toBeUndefined();
     expect(resolve("//cdn.example.com/x.png")).toBeUndefined();
+  });
+  it("changes the local resource URL on refresh while preserving SVG fragments and query strings", () => {
+    const bases = { rootFsPath: wiki, rootUri: "https://res/wiki", docDirFsPath: path.dirname(page), cacheKey: "first" };
+    const first = makeAssetResolver(bases);
+    const next = makeAssetResolver({ ...bases, cacheKey: "next" });
+    expect(first("/assets/drawing.svg?theme=dark#layer-1")).toBe("https://res/wiki/assets/drawing.svg?theme=dark&__wikijs_preview=first#layer-1");
+    expect(next("/assets/drawing.svg#layer-1")).toBe("https://res/wiki/assets/drawing.svg?__wikijs_preview=next#layer-1");
+    expect(first("https://example.com/drawing.svg#layer-1")).toBeUndefined();
+    expect(first("data:image/svg+xml,x")).toBeUndefined();
+  });
+  it("reports only resolved local dependencies, including files that do not exist yet", () => {
+    const files: string[] = [];
+    const resolve = makeAssetResolver({ rootFsPath: wiki, rootUri: "https://res/wiki", docDirFsPath: path.dirname(page) }, path, file => files.push(file));
+    resolve("/assets/missing%20drawing.svg#view");
+    resolve("img/nested.png?size=2");
+    resolve("../../outside.svg");
+    resolve("https://example.com/remote.svg");
+    expect(files).toEqual([path.join(wiki, "assets/missing drawing.svg"), path.join(wiki, "About-Drafting/img/nested.png")]);
   });
 });
 

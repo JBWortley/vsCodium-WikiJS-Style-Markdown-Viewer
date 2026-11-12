@@ -28,6 +28,11 @@ before distributing a build. Open `test/fixtures/wiki/home.md` for a synthetic d
   beside it. On macOS use **Cmd+Shift+V**.
 - **Ctrl+K V** opens a side preview that follows edits and editor scrolling. On macOS use
   **Cmd+K V**.
+- Saved changes to local images (including SVGs), audio and video refresh automatically.
+  Unsaved edits in an asset editor appear after saving. Remote resources are not watched.
+- Click the **Refresh Wiki.js Page** title-bar button, use the command palette, or press
+  **Ctrl+Shift+R** (**Cmd+Shift+R** on macOS) with the Wiki.js view focused to render again and reload
+  local assets. Refresh keeps your scroll position and expanded details sections.
 - The blue book icon, **Open as Wiki.js Page** command and **Reopen Editor With...** menu
   provide the same entry point. Wiki.js Page can be selected as the default Markdown editor.
 - Wiki links open local pages; red links indicate missing local pages.
